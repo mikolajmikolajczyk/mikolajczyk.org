@@ -612,6 +612,8 @@ function renderSiteEditor(){
     <div class="field"><label>Bio <span class="hint">one paragraph per block (blank line separates)</span></label>
       <textarea id="s-bio" style="min-height:120px">${esc((s.bio||[]).join("\n\n"))}</textarea>
     </div>
+    <div class="field"><label>Cloudflare Web Analytics <span class="hint">beacon token — empty = disabled</span></label>
+      <input type="text" id="s-cf" value="${attr(s.cfAnalytics||'')}" placeholder="(none)"></div>
     <div class="subhead">Footer links</div>
     <div id="footer"></div>
     <button class="addbtn" id="addFoot">+ add link</button>
@@ -621,6 +623,7 @@ function renderSiteEditor(){
   $("#s-name").oninput = e=>{ s.name=e.target.value; markDirty(); };
   $("#s-role").oninput = e=>{ s.role=e.target.value; markDirty(); };
   $("#s-bio").oninput  = e=>{ s.bio=e.target.value.split(/\n\n+/).map(x=>x.trim()).filter(Boolean); markDirty(); };
+  $("#s-cf").oninput   = e=>{ const v=e.target.value.trim(); if(v) s.cfAnalytics=v; else delete s.cfAnalytics; markDirty(); };
   renderFooter();
   bindActions();
 }

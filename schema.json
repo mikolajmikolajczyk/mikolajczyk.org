@@ -18,6 +18,8 @@
       "properties": {
         "name": { "type": "string", "minLength": 1, "maxLength": 80 },
         "role": { "type": "string", "maxLength": 200 },
+        "cfAnalytics": { "type": "string", "maxLength": 120,
+                         "description": "Cloudflare Web Analytics beacon token. Injected into the front at build time." },
         "bio":  { "type": "array", "items": { "type": "string", "maxLength": 800 }, "maxItems": 6 },
         "footer": {
           "type": "array", "maxItems": 8,

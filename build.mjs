@@ -186,8 +186,15 @@ function buildHtml(doc, template) {
   const name = stripTags(site.name || "Mikołaj Mikołajczyk");
   const desc = stripTags((site.bio && site.bio[0]) || "Project portfolio.").slice(0, 200);
 
+  // Cloudflare Web Analytics beacon, only when a token is configured (site.cfAnalytics).
+  const cfToken = String(site.cfAnalytics || "").replace(/[^a-zA-Z0-9]/g, "");
+  const cf = cfToken
+    ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${cfToken}"}'></script>`
+    : "";
+
   return template
     .replace(placeholder, "/*__DATA__*/ " + json)
+    .replace("<!--CF_ANALYTICS-->", cf)
     .replaceAll("__SITE_NAME__", xmlEsc(name))
     .replaceAll("__SITE_DESC__", xmlEsc(desc))
     .replaceAll("__SITE_URL__", SITE_URL);
