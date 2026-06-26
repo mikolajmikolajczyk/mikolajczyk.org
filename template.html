@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__SITE_NAME__ — projects</title>
+<meta name="description" content="__SITE_DESC__">
+<meta property="og:title" content="__SITE_NAME__ — projects">
+<meta property="og:description" content="__SITE_DESC__">
+<meta property="og:type" content="website">
+<meta property="og:url" content="__SITE_URL__">
+<link rel="alternate" type="application/rss+xml" title="__SITE_NAME__ — worklog" href="/feed.xml">
+<style>
+  :root {
+    --bg:        #0a0e0d;
+    --bg-raised: #111715;
+    --line:      #1d2926;
+    --ink:       #c9d4d0;
+    --ink-dim:   #6b7a75;
+    --ink-faint: #41504b;
+    --acc:       #4ade80;
+    --acc-deep:  #15803d;
+    --amber:     #d9a441;
+    --mono: "JetBrains Mono", "SF Mono", "Cascadia Code", ui-monospace, "Menlo", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.65;
+    letter-spacing: .01em;
+    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(74,222,128,.05), transparent 70%);
+    background-attachment: fixed;
+    height: 100%;
+    overflow: hidden;          /* the window doesn't scroll; each pane scrolls itself */
+  }
+
+  /* ---- sliding viewport: [post detail | list | project detail] ----
+     Panes scroll independently, so sliding to a detail never tugs the list
+     up/down — no scroll "jump", and the list keeps its position on return. */
+  .viewport { position: relative; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
+  .rail { display: flex; width: 300%; height: 100%; transition: transform .42s cubic-bezier(.4,0,.15,1); transform: translateX(-33.3333%); }
+  .rail.detail-project { transform: translateX(-66.6667%); }  /* slide in from the right */
+  .rail.detail-post    { transform: translateX(0); }          /* slide in from the left */
+  .pane { width: 33.3333%; flex: 0 0 33.3333%; min-width: 0; height: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  @media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
+  .wrap.wide { max-width: 1180px; }   /* detail panes get more room than the two-column list */
+
+  /* ---- boot animation ---- */
+  @media (prefers-reduced-motion: no-preference) {
+    .boot { opacity: 0; animation: fade .5s ease forwards; }
+    .boot.d1 { animation-delay: .05s; }
+    .boot.d2 { animation-delay: .18s; }
+    .boot.d3 { animation-delay: .32s; }
+    .entry  { opacity: 0; animation: rise .45s cubic-bezier(.2,.7,.3,1) forwards; }
+  }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- header ---- */
+  header { padding: 92px 0 48px; }
+  .prompt { color: var(--ink-faint); }
+  .prompt::before { content: "$ "; color: var(--acc-deep); }
+  h1 { font-size: clamp(30px, 6vw, 46px); font-weight: 700; letter-spacing: -.02em; margin: 8px 0 2px; color: #eef3f1; }
+  h1 .caret { display: inline-block; width: .58ch; height: 1.05em; background: var(--acc); margin-left: 4px; transform: translateY(.14em); animation: blink 1.15s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .role { color: var(--ink-dim); font-size: 14px; margin: 0 0 26px; }
+  .role b { color: var(--ink); font-weight: 500; }
+  .bio { color: var(--ink); max-width: 92ch; border-left: 2px solid var(--line); padding-left: 18px; margin: 0; }
+  .bio p { margin: 0 0 12px; }
+  .bio p:last-child { margin-bottom: 0; }
+  .bio .dim { color: var(--ink-dim); }
+
+  /* ---- section label ---- */
+  .seclabel { display: flex; align-items: center; gap: 14px; margin: 64px 0 8px; color: var(--ink-dim); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; }
+  .seclabel::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+  .seclabel .count { color: var(--ink-faint); }
+  /* right column mirrors the left so the split reads symmetrically about the divider */
+  .seclabel.right { flex-direction: row-reverse; }
+  .seclabel.right::after { background: linear-gradient(90deg, transparent, var(--line)); }
+
+  /* ---- posts | projects split ---- */
+  .split { display: grid; grid-template-columns: 1fr 1px 1fr; column-gap: 36px; }
+  .col { min-width: 0; }
+  .divider { background: linear-gradient(180deg, transparent, var(--line) 9%, var(--line) 91%, transparent); }
+  .tabs { display: none; gap: 8px; margin: 40px 0 0; }
+  .tabs button { flex: 1; padding: 9px 0; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--ink-dim); font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+  .tabs button:hover { color: var(--acc); border-color: var(--acc-deep); }
+  .tabs button.active { color: #062b13; background: var(--acc); border-color: var(--acc); font-weight: 600; }
+
+  /* ---- posts column ---- */
+  .postlog { list-style: none; margin: 0; padding: 0; }
+  .feedsearch { width: 100%; font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--bg-raised); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 4px 0 6px; }
+  .feedsearch:focus { outline: none; border-color: var(--acc-deep); }
+  .feedsearch::placeholder { color: var(--ink-faint); }
+  .feedmore { padding: 18px 0; text-align: center; }
+  .feedmore button { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 18px; cursor: pointer; transition: color .15s, border-color .15s; }
+  .feedmore button:hover { color: var(--acc); border-color: var(--acc-deep); }
+  .feedmore .num { color: var(--ink-faint); }
+  .post { position: relative; padding: 20px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .post:hover { background: linear-gradient(270deg, rgba(74,222,128,.03), transparent 55%); }
+  .post::before { content: ""; position: absolute; right: -16px; top: 0; bottom: 0; width: 2px; background: var(--acc); transform: scaleY(0); transform-origin: top; transition: transform .2s ease; }
+  .post:hover::before { transform: scaleY(1); }
+  .post-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 12px; margin-bottom: 7px; }
+  .post-title { font-size: 15px; font-weight: 600; color: #eef3f1; }
+  .post-date { font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; margin-left: auto; }
+  .feed-src { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--acc); border: 1px solid var(--acc-deep); border-radius: 3px; padding: 1px 7px; text-decoration: none; }
+  .feed-src:hover { background: rgba(74,222,128,.08); }
+  .editlink { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 1px 7px; margin-left: 8px; text-decoration: none; cursor: pointer; }
+  .editlink:hover { color: var(--acc); border-color: var(--acc-deep); }
+  .post-body { color: var(--ink-dim); max-width: 88ch; }
+  .post-body p { margin: 0 0 9px; } .post-body p:last-child { margin-bottom: 0; }
+  .post-body ul { margin: 0 0 9px; padding-left: 18px; }
+  .post-body code { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; font-size: 12px; color: var(--ink); }
+  .post-body strong { color: var(--ink); font-weight: 600; }
+  .post-body a { color: var(--acc); text-decoration: none; border-bottom: 1px solid var(--acc-deep); }
+  .post-body img, .wl-body img { max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid var(--line); border-radius: 6px; }
+  .post-body h1, .post-body h2, .post-body h3, .post-body h4, .post-body h5, .post-body h6,
+  .wl-body h1, .wl-body h2, .wl-body h3, .wl-body h4, .wl-body h5, .wl-body h6 {
+    color: #eef3f1; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin: 16px 0 8px; }
+  .post-body h1:first-child, .wl-body h1:first-child { margin-top: 0; }
+
+  @media (max-width: 860px) {
+    .split { display: block; }
+    .divider { display: none; }
+    .tabs { display: flex; }
+    .col { display: none; }
+    .col.active { display: block; }
+    .col .seclabel { margin-top: 26px; }
+    .seclabel.right { flex-direction: row; }   /* no mirror in single-column (tab) mode */
+    .seclabel.right::after { background: linear-gradient(90deg, var(--line), transparent); }
+  }
+
+  /* ---- log entries ---- */
+  .log { list-style: none; margin: 0; padding: 0; }
+  .entry { display: grid; grid-template-columns: 56px 1fr; gap: 0 18px; padding: 22px 16px 22px 0; border-bottom: 1px solid var(--line); position: relative; cursor: pointer; }
+  .entry:hover { background: linear-gradient(90deg, rgba(74,222,128,.025), transparent 60%); }
+  .entry::before { content: ""; position: absolute; left: -16px; top: 0; bottom: 0; width: 2px; background: var(--acc); transform: scaleY(0); transform-origin: top; transition: transform .2s ease; }
+  .entry:hover::before { transform: scaleY(1); }
+  .year { color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+  .body { min-width: 0; }
+  .titleline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 12px; margin-bottom: 5px; }
+  .name { font-size: 16px; font-weight: 600; color: #eef3f1; text-decoration: none; }
+  a.name { border-bottom: 1px solid transparent; transition: border-color .15s, color .15s; }
+  a.name:hover { color: var(--acc); border-bottom-color: var(--acc-deep); }
+
+  .tag { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-dim); white-space: nowrap; }
+  .tag.active { color: var(--acc); border-color: var(--acc-deep); }
+  .tag.done   { color: var(--ink-dim); }
+  .tag.paused { color: var(--amber); border-color: #4a3a1a; }
+
+  .desc { color: var(--ink-dim); margin: 0 0 9px; max-width: 64ch; }
+  .desc b { color: var(--ink); font-weight: 500; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+  .chip { font-size: 11px; color: var(--ink-faint); padding: 1px 8px; border: 1px solid var(--line); border-radius: 3px; }
+
+  .links { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .src { font-size: 12px; color: var(--ink-dim); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-bottom: 1px solid transparent; }
+  .src:hover { color: var(--acc); }
+  .src svg { width: 13px; height: 13px; fill: currentColor; opacity: .8; }
+
+  /* ---- screenshot strip (single-row carousel, horizontal scroll) ---- */
+  .shots { display: flex; flex-wrap: nowrap; gap: 10px; margin-top: 14px; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .shots::-webkit-scrollbar { height: 8px; }
+  .shots::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  .shots::-webkit-scrollbar-thumb:hover { background: var(--acc-deep); }
+  .shots::-webkit-scrollbar-track { background: transparent; }
+  .shot { position: relative; width: 132px; height: 84px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--bg-raised); padding: 0; flex: 0 0 auto; scroll-snap-align: start; transition: border-color .15s, transform .15s; }
+  .shot:hover { border-color: var(--acc-deep); transform: translateY(-2px); }
+  .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot.empty { display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 10px; letter-spacing: .04em; text-align: center; line-height: 1.4; padding: 4px; cursor: default; background: repeating-linear-gradient(45deg, transparent, transparent 7px, rgba(29,41,38,.4) 7px, rgba(29,41,38,.4) 8px); }
+  .shot .badge { position: absolute; top: 5px; left: 5px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; background: rgba(10,14,13,.78); color: var(--acc); padding: 1px 5px; border-radius: 2px; pointer-events: none; }
+
+  /* ---- "more" disclosure ---- */
+  .more { margin-top: 16px; background: none; border: none; cursor: pointer; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 7px; padding: 4px 0; transition: color .15s, gap .15s; }
+  .more:hover { color: var(--acc); gap: 11px; }
+  .more .arrow { transition: transform .15s; }
+  .more:hover .arrow { transform: translateX(2px); }
+  .more .num { color: var(--ink-faint); }
+
+  /* ---- detail pane ---- */
+  .detailpane { padding: 92px 0 0; }
+  .back { background: none; border: none; cursor: pointer; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 30px; transition: color .15s, gap .15s; }
+  .back:hover { color: var(--acc); gap: 12px; }
+  .back .arrow { transition: transform .15s; }
+  .back:hover .arrow { transform: translateX(-2px); }
+
+  .d-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 14px; margin-bottom: 6px; }
+  .d-title { font-size: clamp(24px, 5vw, 34px); font-weight: 700; letter-spacing: -.02em; color: #eef3f1; margin: 0; }
+  .d-sub { color: var(--ink-dim); margin: 0 0 18px; max-width: 88ch; }
+  .d-sub b { color: var(--ink); font-weight: 500; }
+  .d-date { color: var(--ink-faint); font-size: 12px; margin: 0 0 22px; font-variant-numeric: tabular-nums; }
+  .d-links { display: flex; gap: 18px; margin-bottom: 8px; }
+
+  .worklabel { display: flex; align-items: center; gap: 14px; margin: 44px 0 4px; color: var(--ink-dim); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; }
+  .worklabel::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+
+  /* worklog timeline */
+  .worklog { list-style: none; margin: 0; padding: 0; }
+  .wl { position: relative; padding: 22px 0 22px 30px; border-left: 1px solid var(--line); margin-left: 6px; }
+  .wl:last-child { border-left-color: transparent; }
+  .wl::before { content: ""; position: absolute; left: -5px; top: 28px; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); border: 2px solid var(--acc-deep); }
+  .wl.release::before { background: var(--acc); border-color: var(--acc); }
+  .wl-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 12px; margin-bottom: 8px; }
+  .wl-ver { font-size: 15px; font-weight: 600; color: #eef3f1; }
+  .wl-date { font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .wl-kind { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-dim); }
+  .wl-kind.release { color: var(--acc); border-color: var(--acc-deep); }
+  .wl-kind.note { color: var(--amber); border-color: #4a3a1a; }
+  .wl-body { color: var(--ink-dim); max-width: 88ch; }
+  .wl-body p { margin: 0 0 10px; }
+  .wl-body ul { margin: 0 0 10px; padding-left: 20px; }
+  .wl-body li { margin: 2px 0; }
+  .wl-body code { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; font-size: 12px; color: var(--ink); }
+  .wl-body strong { color: var(--ink); font-weight: 600; }
+  .wl-body a { color: var(--acc); text-decoration: none; border-bottom: 1px solid var(--acc-deep); }
+  .wl-empty { color: var(--ink-faint); padding: 20px 0; font-size: 13px; }
+
+  /* ---- lightbox ---- */
+  .lb { position: fixed; inset: 0; z-index: 50; background: rgba(4,7,6,.92); display: none; align-items: center; justify-content: center; padding: 32px; cursor: zoom-out; }
+  .lb.open { display: flex; }
+  .lb img { max-width: 100%; max-height: 100%; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 24px 80px rgba(0,0,0,.6); }
+  .lb .close { position: absolute; top: 20px; right: 24px; background: none; border: 1px solid var(--line); color: var(--ink-dim); font-family: var(--mono); font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 4px; }
+  .lb .close:hover { color: var(--acc); border-color: var(--acc-deep); }
+  .lbnav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(10,14,13,.6); border: 1px solid var(--line); color: var(--ink-dim); font-size: 26px; line-height: 1; width: 46px; height: 64px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .lbnav:hover { color: var(--acc); border-color: var(--acc-deep); }
+  .lbnav.prev { left: 24px; } .lbnav.next { right: 24px; }
+  @media (prefers-reduced-motion: no-preference) { .lb.open img { animation: pop .2s cubic-bezier(.2,.7,.3,1); } }
+  @keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+  /* ---- footer ---- */
+  footer { margin: 72px 0 56px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; color: var(--ink-faint); font-size: 12px; }
+  footer a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid transparent; }
+  footer a:hover { color: var(--acc); border-bottom-color: var(--acc-deep); }
+  footer .spacer { flex: 1; }
+
+  :focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+
+  /* ---- preview banner (only in /?preview) ---- */
+  #previewBar { position: fixed; top: 0; left: 0; right: 0; z-index: 100; text-align: center; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; padding: 6px; color: var(--amber); background: rgba(217,164,65,.12); border-bottom: 1px solid #4a3a1a; backdrop-filter: blur(6px); pointer-events: none; }
+
+  @media (max-width: 560px) {
+    header, .detailpane { padding-top: 60px; }
+    .entry { grid-template-columns: 1fr; gap: 4px; }
+    .year { padding-top: 0; }
+    .links { margin-left: 0; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="viewport">
+  <div class="rail" id="rail">
+
+    <!-- ============ POST DETAIL PANE (left) ============ -->
+    <div class="pane">
+      <div class="wrap wide">
+        <div class="detailpane" id="postDetail"></div>
+        <footer>
+          <span>mikolajczyk.org</span>
+          <span class="spacer"></span>
+          <a href="https://github.com/mikolajmikolajczyk">GitHub</a>
+          <a href="https://seed.mikolajczyk.org">Radicle seed</a>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ============ LIST PANE ============ -->
+    <div class="pane">
+      <div class="wrap">
+        <header>
+          <div class="prompt boot d1">whoami</div>
+          <h1 class="boot d2" id="siteName">mikolajczyk<span class="caret"></span></h1>
+          <p class="role boot d2" id="siteRole"></p>
+          <div class="bio boot d3" id="siteBio"></div>
+        </header>
+
+        <div class="tabs" id="tabs">
+          <button data-tab="projects" class="active">Projects</button>
+          <button data-tab="posts">Feed</button>
+        </div>
+
+        <div class="split">
+          <section class="col" data-col="posts">
+            <div class="seclabel">Feed <span class="count" id="postCount">// 0</span></div>
+            <input type="search" id="feedSearch" class="feedsearch" placeholder="search posts &amp; worklog…" autocomplete="off">
+            <ul class="postlog" id="postlog"></ul>
+          </section>
+          <div class="divider" aria-hidden="true"></div>
+          <section class="col active" data-col="projects">
+            <div class="seclabel right">Projects <span class="count" id="projCount">// 0</span></div>
+            <ul class="log" id="log"></ul>
+          </section>
+        </div>
+
+        <footer id="siteFooter">
+          <span>mikolajczyk.org</span>
+          <span class="spacer"></span>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ============ DETAIL PANE ============ -->
+    <div class="pane">
+      <div class="wrap wide">
+        <div class="detailpane" id="detail"></div>
+        <footer>
+          <span>mikolajczyk.org</span>
+          <span class="spacer"></span>
+          <a href="https://github.com/mikolajmikolajczyk">GitHub</a>
+          <a href="https://seed.mikolajczyk.org">Radicle seed</a>
+        </footer>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="lb" id="lb" aria-hidden="true">
+  <button class="close" id="lbClose" aria-label="Close">esc ✕</button>
+  <button class="lbnav prev" id="lbPrev" aria-label="Previous">‹</button>
+  <img id="lbImg" src="" alt="">
+  <button class="lbnav next" id="lbNext" aria-label="Next">›</button>
+</div>
+
+<script>
+/* ---------- icons ---------- */
+const gh = '<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>';
+const globe = '<svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zM2.04 7h2.31c.06-1.4.3-2.69.66-3.71A6.02 6.02 0 002.04 7zm0 2a6.02 6.02 0 002.97 3.71c-.36-1.02-.6-2.31-.66-3.71H2.04zm9.92 0c-.06 1.4-.3 2.69-.66 3.71A6.02 6.02 0 0013.96 9h-2zM13.96 7a6.02 6.02 0 00-2.97-3.71c.36 1.02.6 2.31.66 3.71h2.31zM8 2.05C7.4 2.5 6.7 4.36 6.55 7h2.9C9.3 4.36 8.6 2.5 8 2.05zM6.55 9c.15 2.64.85 4.5 1.45 4.95.6-.45 1.3-2.31 1.45-4.95h-2.9z"/></svg>';
+
+const STATUS = { active:['active','active'], done:['done','done'], paused:['paused','paused'] };
+
+/* ---------- data: baked in at build time from projects.json (repo = source of truth) ---------- */
+const DOC = /*__DATA__*/ {"version":1,"site":{},"projects":[]};
+let projects = [];
+let posts = [];
+const FEED_BATCH = 20;          // feed items rendered per page
+let feedShown = FEED_BATCH;     // how many are currently shown
+const WL_BATCH = 20;            // worklog entries rendered per page (project detail)
+let wlShown = WL_BATCH;
+let detailProject = null;       // project currently shown in the detail pane
+let feedQuery = '';             // current feed search (lowercased), '' = browse mode
+
+// edit mode: on localhost, or when the admin left a "logged in" hint in localStorage.
+// Just gates the visibility of edit links — the admin itself still enforces auth.
+const EDIT = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
+  || (()=>{ try{ return localStorage.getItem('admin_session')==='1'; }catch{ return false; } })();
+function editBtn(target){ return EDIT ? `<a class="editlink" data-t="${target}" title="edit in admin">edit</a>` : ''; }
+function openEdit(target){
+  try{ localStorage.setItem('admin_target', target); }catch{}
+  window.open(location.origin + '/admin/#' + target, 'siteadmin');
+}
+
+/* ---------- emoji shortcodes (:rocket: -> 🚀) ---------- */
+const EMOJI = {rocket:"🚀",sparkles:"✨",tada:"🎉",fire:"🔥",bug:"🐛",wrench:"🔧",hammer:"🔨","hammer_and_wrench":"🛠️",tools:"🛠️",gear:"⚙️",zap:"⚡",boom:"💥",warning:"⚠️",white_check_mark:"✅",x:"❌",heavy_check_mark:"✔️",heavy_plus_sign:"➕",heavy_minus_sign:"➖","+1":"👍","-1":"👎",art:"🎨",recycle:"♻️",lock:"🔒",unlock:"🔓",key:"🔑",book:"📖",books:"📚",memo:"📝",pencil:"✏️",bulb:"💡",rotating_light:"🚨",package:"📦",construction:"🚧",rainbow:"🌈",ambulance:"🚑",lipstick:"💄",green_heart:"💚",heart:"❤️",broken_heart:"💔",arrow_up:"⬆️",arrow_down:"⬇️",bookmark:"🔖",gem:"💎",tractor:"🚜",eyes:"👀",thumbsup:"👍",thumbsdown:"👎",point_right:"👉",point_left:"👈",star:"⭐","100":"💯",ok_hand:"👌",raised_hands:"🙌",pray:"🙏",clap:"👏",wave:"👋",computer:"💻",keyboard:"⌨️",floppy_disk:"💾",calendar:"📅",link:"🔗",mag:"🔍",label:"🏷️",robot:"🤖",alien:"👽",space_invader:"👾",video_game:"🎮",joystick:"🕹️",penguin:"🐧",crab:"🦀",snake:"🐍",coffee:"☕",seedling:"🌱",hourglass:"⏳",checkered_flag:"🏁",dart:"🎯",speech_balloon:"💬",thought_balloon:"💭",smile:"😄",grin:"😁",wink:"😉",thinking:"🤔",tada2:"🎊",rocket2:"🛰️",bell:"🔔",sound:"🔊",mute:"🔇",camera:"📷",bookmark_tabs:"📑",scroll:"📜",mailbox:"📬",sos:"🆘",new:"🆕",ok:"🆗"};
+const emoji = s => s.replace(/:([a-z0-9_+-]+):/g, (m,n)=> EMOJI[n] || m);
+
+/* ---------- minimal markdown (p, ul/li, bold, italic, code, links, images, emoji) ---------- */
+function md(src){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => emoji(esc(s)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>'));
+  const blocks = src.split(/\n\n+/);
+  let html = '';
+  for (const b of blocks){
+    const lines = b.split('\n');
+    const hm = b.match(/^(#{1,6})\s+(.*)$/);
+    if (lines.length === 1 && hm){
+      const n = hm[1].length;
+      html += `<h${n}>`+inline(hm[2])+`</h${n}>`;
+    } else if (lines.every(l => /^\s*[-*+]\s+/.test(l))){
+      html += '<ul>' + lines.map(l => '<li>'+inline(l.replace(/^\s*[-*+]\s+/,''))+'</li>').join('') + '</ul>';
+    } else {
+      html += '<p>'+inline(b)+'</p>';
+    }
+  }
+  return html;
+}
+
+/* ---------- renderers ---------- */
+function shotHtml(s){
+  if (s.placeholder)
+    return `<button class="shot empty" data-full="${s.placeholder}">${s.placeholder}</button>`;
+  const badge = s.badge ? `<span class="badge">${s.badge}</span>` : '';
+  return `<button class="shot" data-full="${s.src}">${badge}<img src="${s.src}" alt="${s.alt||''}" loading="lazy"></button>`;
+}
+function linksHtml(p){
+  let out = '';
+  if (p.github) out += `<a class="src" href="${p.github}">${gh} github</a>`;
+  if (p.site)   out += `<a class="src" href="${p.site}">${globe} site</a>`;
+  return out ? `<div class="links">${out}</div>` : '';
+}
+
+function renderList(){
+  const log = document.getElementById('log');
+  log.innerHTML = projects.map((p,i)=>{
+    const [cls,label] = STATUS[p.status];
+    const moreBtn = p.worklog.length
+      ? `<button class="more" data-id="${p.id}">more <span class="num">// ${p.worklog.length}</span> <span class="arrow">→</span></button>`
+      : '';
+    const head = (p.github||p.site)
+      ? `<a class="name" href="${p.github||p.site}">${p.name}</a>`
+      : `<span class="name">${p.name}</span>`;
+    return `
+      <li class="entry" data-id="${p.id}" style="animation-delay:${(.40+i*.06).toFixed(2)}s">
+        <div class="year">${p.year}</div>
+        <div class="body">
+          <div class="titleline">${head}<span class="tag ${cls}">${label}</span></div>
+          <p class="desc">${p.descHtml}</p>
+          <div class="meta">${p.chips.map(c=>`<span class="chip">${c}</span>`).join('')}${linksHtml(p)}</div>
+          <div class="shots">${p.shots.map(shotHtml).join('')}</div>
+          ${moreBtn}
+        </div>
+      </li>`;
+  }).join('');
+}
+
+// merged feed: standalone posts + every project's worklog entries, newest first.
+// posts link to their own detail (slides left); worklog items link to the project (slides right).
+function renderPosts(){
+  const el = document.getElementById('postlog');
+  const excerpt = src => md((src||'').split(/\n\n+/)[0]);   // first paragraph only
+  const chips = pr => (pr.chips||[]).join(' ');
+  // every searchable item; `inFeed` controls browse mode (search ignores it)
+  const items = [
+    ...posts.map(p => ({ date:p.date, post:p, inFeed:true,
+      hay:((p.title||'')+' '+(p.md||'')).toLowerCase() })),
+    ...projects.flatMap(pr => (pr.worklog||[]).map(e => ({ date:e.date, project:pr, entry:e, inFeed:e.feed!==false,
+      hay:(pr.name+' '+pr.descHtml+' '+chips(pr)+' '+e.ver+' '+(e.md||'')).toLowerCase() }))),
+    ...projects.map(pr => ({ date:String(pr.year||''), project:pr, projItem:true, inFeed:false,
+      hay:(pr.name+' '+pr.descHtml+' '+chips(pr)).toLowerCase() })),
+  ].sort((a,b)=> a.date<b.date?1 : a.date>b.date?-1 : 0);
+
+  const terms = feedQuery ? feedQuery.split(/\s+/).filter(Boolean) : null;
+  const list = terms ? items.filter(it => terms.every(t => it.hay.includes(t))) : items.filter(it => it.inFeed);
+
+  const card = it => {
+    if(it.post){ const p=it.post; return `
+    <li class="post" id="post-${p.id}" data-post="${p.id}">
+      <div class="post-top">${p.title?`<span class="post-title">${p.title}</span>`:''}<span class="post-date">${p.date}</span>${editBtn('post:'+p.id)}</div>
+      <div class="post-body">${excerpt(p.md)}</div>
+      <button class="more" data-post="${p.id}">more <span class="arrow">»</span></button>
+    </li>`; }
+    if(it.projItem){ const pr=it.project; return `
+    <li class="post" data-feed="${pr.id}">
+      <div class="post-top"><span class="post-title">${pr.name}</span><span class="feed-src">project</span><span class="post-date">${pr.year||''}</span>${editBtn('project:'+pr.id)}</div>
+      <div class="post-body">${pr.descHtml}</div>
+      <button class="more" data-feed="${pr.id}">open <span class="arrow">»</span></button>
+    </li>`; }
+    const pr=it.project, e=it.entry; return `
+    <li class="post" data-feed="${pr.id}">
+      <div class="post-top"><span class="post-title">${e.ver}</span><a class="feed-src" href="#/feed/${pr.id}">${pr.name}</a><span class="post-date">${e.date}</span>${editBtn('project:'+pr.id)}</div>
+      <div class="post-body">${excerpt(e.md)}</div>
+      <button class="more" data-feed="${pr.id}">more <span class="arrow">»</span></button>
+    </li>`;
+  };
+
+  el.innerHTML = list.length
+    ? list.slice(0, feedShown).map(card).join('') + (list.length>feedShown ? `<li class="feedmore"><button id="feedMore">load more <span class="num">// ${list.length-feedShown} more</span></button></li>` : '')
+    : `<li class="wl-empty">${feedQuery ? 'No matches.' : 'Nothing here yet.'}</li>`;
+  const c = document.getElementById('postCount');
+  if(c) c.textContent = '// ' + list.length;
+}
+
+/* ---- tabs (mobile only; both columns show side-by-side on desktop) ---- */
+function setTab(name){
+  document.querySelectorAll('.col').forEach(c=> c.classList.toggle('active', c.dataset.col===name));
+  document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+}
+
+// worklog entries for the detail pane: pinned first, then date desc, sliced to wlShown
+function worklogHtml(p){
+  const sorted = [...(p.worklog||[])].sort((a,b)=> (b.pinned?1:0)-(a.pinned?1:0) || (a.date<b.date?1 : a.date>b.date?-1 : 0));
+  if(!sorted.length) return '<li class="wl-empty">No entries yet. The worklog shows up here once I add something.</li>';
+  const lis = sorted.slice(0, wlShown).map(e=>{
+    const k = e.kind==='release' ? 'release' : 'note';
+    return `
+      <li class="wl ${k}">
+        <div class="wl-top">
+          <span class="wl-ver">${e.ver}</span>
+          <span class="wl-kind ${k}">${k}</span>
+          ${e.pinned?'<span class="wl-kind" style="color:var(--acc);border-color:var(--acc-deep)">pinned</span>':''}
+          <span class="wl-date">${e.date}</span>
+        </div>
+        <div class="wl-body">${md(e.md)}</div>
+      </li>`;
+  }).join('');
+  const more = sorted.length>wlShown ? `<li class="feedmore"><button id="wlMore">load more <span class="num">// ${sorted.length-wlShown} more</span></button></li>` : '';
+  return lis + more;
+}
+
+function renderDetail(p){
+  const [cls,label] = STATUS[p.status];
+  const dlinks = (p.github?`<a class="src" href="${p.github}">${gh} github</a>`:'')
+               + (p.site?`<a class="src" href="${p.site}">${globe} site</a>`:'');
+
+  return `
+    <button class="back" id="backBtn"><span class="arrow">←</span> projects</button>
+    <div class="d-head"><h1 class="d-title">${p.name}</h1><span class="tag ${cls}">${label}</span>${editBtn('project:'+p.id)}</div>
+    <p class="d-sub">${p.descHtml}</p>
+    ${dlinks?`<div class="d-links">${dlinks}</div>`:''}
+    ${(p.shots&&p.shots.length)?`<div class="shots">${p.shots.map(shotHtml).join('')}</div>`:''}
+    <div class="worklabel">Worklog</div>
+    <ul class="worklog" id="worklog">${worklogHtml(p)}</ul>`;
+}
+
+/* ---------- lightbox ---------- */
+const lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg');
+const lbPrev = document.getElementById('lbPrev'), lbNext = document.getElementById('lbNext');
+let lbList = [], lbIdx = 0;
+function showLb(){ lbImg.src = lbList[lbIdx] || ''; const multi = lbList.length>1; lbPrev.style.display = lbNext.style.display = multi?'':'none'; }
+function openLb(list, idx){ lbList = list; lbIdx = idx||0; showLb(); lb.classList.add('open'); lb.setAttribute('aria-hidden','false'); }
+function closeLb(){ lb.classList.remove('open'); lb.setAttribute('aria-hidden','true'); lbImg.src=''; lbList=[]; }
+function lbStep(d){ if(lbList.length<2) return; lbIdx = (lbIdx + d + lbList.length) % lbList.length; showLb(); }
+// each .shots strip is its own gallery; clicking a shot opens it at that index
+function bindShots(scope){
+  scope.querySelectorAll('.shots').forEach(strip=>{
+    const shots = [...strip.querySelectorAll('.shot:not(.empty)')];
+    const srcs = shots.map(b=>b.dataset.full);
+    shots.forEach((b,i)=> b.onclick = ()=> openLb(srcs, i));
+  });
+}
+lb.addEventListener('click', e=>{ if(e.target===lb || e.target.id==='lbClose') closeLb(); });
+document.getElementById('lbClose').addEventListener('click', closeLb);
+lbPrev.addEventListener('click', e=>{ e.stopPropagation(); lbStep(-1); });
+lbNext.addEventListener('click', e=>{ e.stopPropagation(); lbStep(1); });
+document.addEventListener('keydown', e=>{
+  if(lb.classList.contains('open')){
+    if(e.key==='Escape') closeLb();
+    else if(e.key==='ArrowRight') lbStep(1);
+    else if(e.key==='ArrowLeft') lbStep(-1);
+    return;
+  }
+  if(e.key==='Escape' && isDetail()) location.hash = '';
+});
+
+/* ---------- routing: #/project/<id> (right) and #/post/<id> (left) ---------- */
+const rail = document.getElementById('rail');
+const detail = document.getElementById('detail');
+const postDetail = document.getElementById('postDetail');
+const projPane = detail.closest('.pane');
+const postPane = postDetail.closest('.pane');
+
+const isDetail = ()=> rail.classList.contains('detail-project') || rail.classList.contains('detail-post');
+
+function showList(){
+  rail.classList.remove('detail-project','detail-post');   // list pane keeps its own scrollTop
+}
+// a project detail can open on either side: left (from the feed) or right (from the projects column).
+function showProjectIn(side, id){
+  const p = projects.find(x=>x.id===id);
+  if(!p){ location.hash=''; return; }
+  detailProject = p; wlShown = WL_BATCH;
+  const pane  = side==='left' ? postDetail : detail;
+  const other = side==='left' ? detail : postDetail;
+  other.innerHTML = '';                       // only one detail in the DOM -> #worklog stays unique
+  pane.innerHTML = renderDetail(p);
+  bindShots(pane);
+  pane.querySelector('#backBtn').onclick = ()=> history.back();
+  rail.classList.remove('detail-project','detail-post');
+  rail.classList.add(side==='left' ? 'detail-post' : 'detail-project');
+  (side==='left' ? postPane : projPane).scrollTop = 0;
+  document.title = p.name + ' — Mikołaj Mikołajczyk';
+}
+function showPost(id){
+  const p = posts.find(x=>x.id===id);
+  if(!p){ location.hash=''; return; }
+  detail.innerHTML = '';                       // clear the right pane
+  postDetail.innerHTML = `
+    <button class="back" id="backPost"><span class="arrow">←</span> feed</button>
+    <div class="d-head"><h1 class="d-title">${p.title||p.date}</h1>${editBtn('post:'+p.id)}</div>
+    ${p.title?`<div class="d-date">${p.date}</div>`:''}
+    <div class="post-body">${md(p.md||'')}</div>`;
+  postDetail.querySelector('#backPost').onclick = ()=> history.back();
+  rail.classList.remove('detail-project');
+  rail.classList.add('detail-post');
+  postPane.scrollTop = 0;
+  document.title = (p.title || ('Post ' + p.date)) + ' — Mikołaj Mikołajczyk';
+}
+function route(){
+  const proj = location.hash.match(/^#\/project\/([\w-]+)/);
+  if(proj){ showProjectIn('right', proj[1]); return; }   // from the projects column / external link
+  const feed = location.hash.match(/^#\/feed\/([\w-]+)/);
+  if(feed){ showProjectIn('left', feed[1]); return; }    // a project opened from the feed
+  const post = location.hash.match(/^#\/post\/([\w-]+)/);
+  if(post){ showPost(post[1]); return; }
+  showList();
+  document.title = 'Mikołaj Mikołajczyk — projects';
+}
+
+document.getElementById('log').addEventListener('click', e=>{
+  if(e.target.closest('a') || e.target.closest('.shot')) return;  // links + lightbox shots do their own thing
+  const li = e.target.closest('.entry');
+  if(li) location.hash = '#/project/' + li.dataset.id;
+});
+document.addEventListener('click', e=>{
+  if(e.target.closest('#wlMore')){ wlShown += WL_BATCH; document.getElementById('worklog').innerHTML = worklogHtml(detailProject); }
+});
+// edit links anywhere (feed + detail panes) open the admin on the right tab
+document.addEventListener('click', e=>{
+  const ed = e.target.closest('.editlink');
+  if(ed){ e.preventDefault(); openEdit(ed.dataset.t); }
+});
+document.getElementById('postlog').addEventListener('click', e=>{
+  if(e.target.closest('#feedMore')){ feedShown += FEED_BATCH; renderPosts(); return; }
+  if(e.target.closest('a')) return;            // let links (excerpt links, source chip) work
+  const li = e.target.closest('.post');
+  if(!li) return;
+  if(li.dataset.post)         location.hash = '#/post/' + li.dataset.post;   // post -> left
+  else if(li.dataset.feed)    location.hash = '#/feed/' + li.dataset.feed;   // worklog/project from feed -> left
+});
+
+/* ---------- boot: render from baked-in data (no fetch) ---------- */
+const logEl = document.getElementById('log');
+const projCountEl = document.getElementById('projCount');
+
+/* ---- live preview: open as /?preview to render the admin's unsaved draft
+   (localStorage) instead of the baked data, refreshing on every admin edit ---- */
+const PREVIEW = /[?&]preview\b/.test(location.search);
+const PREVIEW_KEY = 'admin_draft_v1';   // must match the admin's DRAFT_KEY
+
+function currentDoc(){
+  if(PREVIEW){
+    try{ const raw = localStorage.getItem(PREVIEW_KEY); if(raw) return JSON.parse(raw); }catch{}
+  }
+  return DOC;
+}
+function applyDoc(doc){
+  feedShown = FEED_BATCH;   // fresh data -> back to the first page
+  feedQuery = '';
+  const fs = document.getElementById('feedSearch'); if(fs) fs.value = '';
+  projects = Array.isArray(doc) ? doc : (doc.projects || []);
+  posts = (doc && doc.posts) || [];
+  renderSite(doc.site || {});
+  if(projCountEl) projCountEl.textContent = '// ' + projects.length;
+  renderList();
+  renderPosts();
+  bindShots(logEl);
+}
+function showPreviewBanner(){
+  if(document.getElementById('previewBar')) return;
+  const b = document.createElement('div');
+  b.id = 'previewBar';
+  b.textContent = '● PREVIEW — admin draft, not published';
+  document.body.appendChild(b);
+}
+function boot(){
+  applyDoc(currentDoc());
+  document.getElementById('tabs').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(b) setTab(b.dataset.tab);
+  });
+  const fs = document.getElementById('feedSearch');
+  if(fs) fs.addEventListener('input', ()=>{ feedQuery = fs.value.trim().toLowerCase(); feedShown = FEED_BATCH; renderPosts(); });
+  window.addEventListener('hashchange', route);
+  if(PREVIEW){
+    showPreviewBanner();
+    // another tab (the admin) saved the draft -> re-render live
+    window.addEventListener('storage', e=>{ if(e.key===PREVIEW_KEY){ applyDoc(currentDoc()); route(); } });
+  }
+  route();   // honour a deep-link present on first load
+}
+
+// {{years:YYYY}} -> (current year − YYYY), computed at render time so the
+// "N years in IT" line never needs a manual yearly bump.
+function expandTokens(s){
+  const now = new Date().getFullYear();
+  return String(s||'').replace(/\{\{\s*years:(\d{4})\s*\}\}/g, (_,y)=> String(now - (+y)));
+}
+
+function renderSite(s){
+  if(s.name){
+    document.getElementById('siteName').innerHTML = s.name + '<span class="caret"></span>';
+  }
+  const role = document.getElementById('siteRole');
+  if(role) role.innerHTML = expandTokens(s.role || '');
+  const bio = document.getElementById('siteBio');
+  if(bio && Array.isArray(s.bio)){
+    bio.innerHTML = s.bio.map((p,i)=>`<p${i>0?' class="dim"':''}>${expandTokens(p)}</p>`).join('');
+  }
+  const foot = document.getElementById('siteFooter');
+  if(foot && Array.isArray(s.footer)){
+    const links = s.footer.map(f=>`<a href="${f.href}">${f.label}</a>`).join('');
+    foot.innerHTML = `<span>mikolajczyk.org</span><span class="spacer"></span>${links}`;
+  }
+}
+
+boot();
+</script>
+
+</body>
+</html>

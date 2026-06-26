@@ -1,0 +1,412 @@
+{
+  "version": 1,
+  "site": {
+    "name": "mikolajczyk",
+    "role": "Platform / DevOps engineer · <b>Warsaw</b> · ~{{years:2011}} years in IT",
+    "bio": [
+      "I'm a platform/DevOps engineer. I write infrastructure code for multiple clouds and work with Kubernetes as the main platform. I build custom solutions like an mTLS-based application updater for Apple devices, and migrate legacy systems to private and public clouds.",
+      "After work I love to fiddle with old and new hardware. I like understanding how things work at the lowest level, from a 6502 out of the 80s to PS4. Most of it ends up in Rust. This site is my portfolio and a way for me to not bury projects in the drawer."
+    ],
+    "footer": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/mikolajmikolajczyk"
+      },
+      {
+        "label": "Radicle seed",
+        "href": "https://git.mikolajczyk.org"
+      },
+      {
+        "label": "madside",
+        "href": "https://madside.dev"
+      },
+      {
+        "label": "radboard",
+        "href": "https://radboard.mikolajczyk.org"
+      }
+    ]
+  },
+  "projects": [
+    {
+      "id": "madside",
+      "name": "madside",
+      "year": 2026,
+      "status": "active",
+      "descHtml": "A browser-based IDE for retro machines with a ports-and-adapters architecture. Support for <b>NES, Atari XL, C64, ZX Spectrum and Sega Genesis</b>. Includes autocomplete, debugger and emulator for each supported machine.",
+      "chips": [
+        "TypeScript",
+        "CodeMirror 6",
+        "AGPL"
+      ],
+      "github": "https://github.com/mikolajmikolajczyk/madside",
+      "site": "https://madside.dev",
+      "shots": [
+        {
+          "src": "media/madside-welcome.webp",
+          "badge": "welcome",
+          "alt": "madside welcome screen"
+        },
+        {
+          "src": "media/madside-atari.webp",
+          "alt": "madside atari editor",
+          "badge": "atari"
+        },
+        {
+          "src": "media/madside-c64-c.webp",
+          "alt": "madside c64 editor",
+          "badge": "c64"
+        },
+        {
+          "src": "media/madside-genesis.webp",
+          "alt": "madside genesis editor",
+          "badge": "genesis"
+        },
+        {
+          "src": "media/madside-course.webp",
+          "alt": "madside course",
+          "badge": "course"
+        }
+      ],
+      "worklog": [
+        {
+          "kind": "note",
+          "ver": "Why I'm doing this",
+          "date": "2026-06",
+          "md": "For a long time I couldn't find any product that would let me write retro code in a modern way. madside is exactly this. madside was created in a way that allows anyone to add new machine, new toolchain or new panel. Easy to use and easy to extend. And can be used even from mobile devices."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.19.0",
+          "date": "2026-06-25",
+          "md": "True **dual-CPU debugging** for Sega Genesis — single-instruction 68000 step plus full Z80 breakpoints, stepping and current-line.\n\n- added: welcome screen redesign — token-driven reskin, two-column layout\n- added: z88dk sccz80 C source-level debugging (C_LINE + link map → source map)"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.18.0",
+          "date": "2026-06-25",
+          "md": "**Bank-aware addressing** across machines (ADR-0014): Atari 130XE, NES PRG banking and ZX Spectrum 128K — bank-aware breakpoints, live-bank indicator, banked source maps.\n\n- added: a new assembly **LSP** — hover, go-to-definition, find-references, rename and diagnostics across 6502 / M68k / Z80\n- added: Genesis dual-CPU foundation — assemble your own Z80 sound into the ROM"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.17.0",
+          "date": "2026-06-24",
+          "md": "**Sega Genesis / 68000** target — clownassembler (M68k) with Musashi and gpgx cores, an M68k debug adapter and a hello-world template.\n\n- added: consent gate + content-hash trust for project-local plugins"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.16.0",
+          "date": "2026-06-23",
+          "md": "**ZX Spectrum 48K** (z88dk, Z80) plus first-class **C language servers** — completion, hover, go-to-definition, find-references, rename and semantic diagnostics for cc65 C and z88dk Z80 C.\n\n- added: in-app **course authoring** — lesson CRUD, live preview, export/import\n- added: themes as plugins + a dockable (dockview) layout, variables/watch panels"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.15.0",
+          "date": "2026-06-19",
+          "md": "**Commodore 64** machine — chips emulator with the cc65 and MADS toolchains and starter templates."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.11.0",
+          "date": "2026-06-18",
+          "md": "First big public release: write **NES games in C** (cc65, compiled in-browser), a command palette, an app-wide **VFS + WASI bridge**, and multi-target cc65 (NES + Atari).\n\n- added: cross-file C completion, clang-format on save, inline build diagnostics\n- added: production / supply-chain hardening — CSP, security headers, a biting lint gate"
+        },
+        {
+          "kind": "note",
+          "ver": "Full changelog",
+          "date": "2026-06-25",
+          "md": "The entries above are the highlights. Every release, with full detail, lives in the [complete CHANGELOG.md](https://github.com/mikolajmikolajczyk/madside/blob/main/CHANGELOG.md).",
+          "pinned": true,
+          "feed": false
+        }
+      ]
+    },
+    {
+      "id": "radboard",
+      "name": "radboard",
+      "year": 2026,
+      "status": "active",
+      "descHtml": "A desktop GUI for <b>Radicle</b> (P2P git) in Tauri/Rust. Kanban columns, patch workflow, staging, inline code review, worktree checkout. Distributed as AppImage, .deb, .rpm, and a Nix flake.",
+      "chips": [
+        "Rust",
+        "Tauri",
+        "AGPL"
+      ],
+      "github": "https://github.com/mikolajmikolajczyk/radboard",
+      "site": "https://radboard.mikolajczyk.org",
+      "shots": [
+        {
+          "src": "media/radboard-issues.webp",
+          "alt": "radboard issues",
+          "badge": "issues"
+        },
+        {
+          "src": "media/radboard-milestones.webp",
+          "alt": "radboard milestones",
+          "badge": "milestones"
+        },
+        {
+          "src": "media/radboard-patches.webp",
+          "alt": "radboard patches",
+          "badge": "patches"
+        },
+        {
+          "src": "media/radboard-files.webp",
+          "alt": "radboard files",
+          "badge": "files"
+        }
+      ],
+      "worklog": [
+        {
+          "kind": "release",
+          "ver": "v0.8.0",
+          "date": "2026-06-09",
+          "md": "- added: **ctrl-K repo switcher** with fuzzy search\n- added: 🌱 good-first-issue badges + most-wanted toggle in the Open column\n- changed: migrate to the **radicle 0.24** crate; resize handles on the frameless window"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.7.0",
+          "date": "2026-06-09",
+          "md": "- added: **worktree + patch sync**, with merge blocked on conflicts\n- added: link patches to issues via commit messages\n- added: periodic sync of the active repo\n- added: **epics** — parent/child issue grouping"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.5.0",
+          "date": "2026-06-03",
+          "md": "A big board batch:\n\n- added: markdown preview in the issue editor + comments\n- added: copyable issue-id badges, assignees, label filtering\n- added: blocked / blocks indicators; persisted `state:*` columns\n- added: **AUR `radboard-bin`** package + auto-publish (v0.5.1)"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.4.0",
+          "date": "2026-04-21",
+          "md": "- added: **milestones** support\n- added: worktree view — create patches from worktrees (branch selection, deferred editor)\n- added: create a new issue from the list view; reopen the last board on launch"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.2.0",
+          "date": "2026-04-08",
+          "md": "- added: redesigned **Create / Update patch** modals\n- added: closing an issue asks for a close status\n- added: COB changes notify the node"
+        },
+        {
+          "kind": "release",
+          "ver": "v0.1.1",
+          "date": "2026-04-01",
+          "md": "First stable beta — the Radicle desktop GUI ships, with build automation (AppImage / .deb / .rpm / Nix)."
+        },
+        {
+          "kind": "note",
+          "ver": "Full changelog",
+          "date": "2026-06-10",
+          "pinned": true,
+          "feed": false,
+          "md": "The entries above are the highlights. Full per-version detail lives in the [complete CHANGELOG.md](https://github.com/mikolajmikolajczyk/radboard/blob/master/CHANGELOG.md)."
+        }
+      ]
+    },
+    {
+      "id": "repoctx",
+      "name": "repoctx",
+      "year": 2026,
+      "status": "active",
+      "descHtml": "A Rust CLI for structural code navigation — tree-sitter + SQLite. Symbol lookup, call graph, import graph, Louvain subsystem detection and a self-contained interactive graph export. Feeds Claude Code a repo digest at session start so the agent navigates with repoctx instead of grep — <b>47–87%</b> token savings on typical queries.",
+      "chips": [
+        "Rust",
+        "tree-sitter",
+        "SQLite"
+      ],
+      "github": "https://github.com/mikolajmikolajczyk/repoctx",
+      "site": null,
+      "shots": [],
+      "worklog": [
+        {
+          "kind": "note",
+          "ver": "Full changelog",
+          "date": "2026-06-17",
+          "pinned": true,
+          "feed": false,
+          "md": "The entries below are the highlights. Full per-version detail lives in the [complete CHANGELOG.md](https://github.com/mikolajmikolajczyk/repoctx/blob/main/CHANGELOG.md)."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.15.0",
+          "date": "2026-06-17",
+          "md": "**Rust import resolution** for the import graph — `crate::` / `self::` / `super::` paths resolve to files via the module-file convention. On repoctx itself `modules` now resolves 82 internal edges (was ~0)."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.13.0",
+          "date": "2026-06-17",
+          "md": "**Pivot: adoption via context, not interception.** Dropped the `grep`/`rg`/`find` PreToolUse rewrite hook (~0% real conversion, ~2,800 LOC deleted) for **`repoctx prime`** — a token-budgeted repo digest injected at **SessionStart**, so the agent starts with a structural map and a nudge to use repoctx over grep."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.12.0",
+          "date": "2026-06-16",
+          "md": "The orientation trio, pure topology — no LLM, no network:\n\n- **`communities`** — Louvain subsystem clustering + god nodes\n- **`report`** — deterministic one-page architecture summary\n- **`export`** — self-contained interactive force-directed call-graph HTML (zero deps, no CDN)\n\nPlus receiver-aware call resolution + per-definition node identity — kills fabricated super-hubs."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.11.0",
+          "date": "2026-06-16",
+          "md": "Call-graph & import analyses, pure queries over the index: **`deadcode`**, **`impact`**, **`cycles`**, **`boundary`** (layering gate), **`overview`** (repo architecture in one call), **`changed`** (review blast radius), plus visibility extraction."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.10.0",
+          "date": "2026-06-15",
+          "md": "**Import / dependency graph** — `deps <file>` and `rdeps <module>` from Tree-sitter import extraction across the core 8 languages. Boundary/layering answered structurally instead of grepping imports."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.8.0",
+          "date": "2026-06-15",
+          "md": "**Static call graph** — `callers` / `callees` / `callgraph --direction up|down|both`, name-resolved from Tree-sitter. Plus **`search`** — ripgrep-backed, textually-complete, compressed to `file:line`."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.7.0",
+          "date": "2026-06-13",
+          "md": "Language coverage to **20** — added Ruby, C, C++, Java, C#, PHP, Lua, Kotlin, Swift (full) + Bash (functions). Grammars statically linked."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.6.0",
+          "date": "2026-06-13",
+          "md": "**`repoctx init`** — one command wires repoctx into Claude Code (hook + skill + guidance). Integration content baked into the binary, no network."
+        },
+        {
+          "kind": "release",
+          "ver": "v0.1.0",
+          "date": "2026-06-11",
+          "md": "First release — Tree-sitter symbol index in SQLite with **`definition`**, **`context`**, **`outline`** and **`symbols`**. Token-cheap structural lookup instead of grep/cat."
+        }
+      ]
+    },
+    {
+      "id": "srh",
+      "name": "Super Robin Hood RE",
+      "year": 2024,
+      "status": "done",
+      "descHtml": "A byte-identical disassembly of a NES game in cc65, with Wireframe magazine #34 as a reference. Five tools in Rust, a documented <b>PP1</b> compression format and the Mega Music Driver. Presented at a meetup and at PTODT.",
+      "chips": [
+        "6502 ASM",
+        "cc65",
+        "Rust"
+      ],
+      "github": "https://github.com/mikolajmikolajczyk/SuperRobinHood",
+      "site": null,
+      "shots": [],
+      "worklog": [
+        {
+          "kind": "release",
+          "ver": "pp1",
+          "date": "2026",
+          "md": "I published small web tool to learn how pp1 pixel prediction format works in Super Robin Hood. Find it [here](https://pp1.mikolajczyk.org/)."
+        },
+        {
+          "kind": "release",
+          "ver": "PTODT",
+          "date": "2026",
+          "md": "I got invited to present my RE findings on PTODT (Polskie Towarzystwo Ochrony Dziedzictwa Technicznego). I host presentation [here](https://srh.mikolajczyk.org). "
+        },
+        {
+          "kind": "release",
+          "ver": "Reverse engineering 2",
+          "date": "2026",
+          "md": "Hired claude code to annotate reverse engineered source code based on PDS source code. Flawless results (after dozens of hours fixing mistakes manually :wink:)."
+        },
+        {
+          "kind": "note",
+          "ver": "Reverse engineering",
+          "date": "2025",
+          "md": "Started manual reverse engineering. Took so long even with PDS source code available. Not enough time after work to do it."
+        },
+        {
+          "kind": "note",
+          "ver": "pp1unpack",
+          "date": "2024",
+          "md": "Created pp1unpack program for commander x16. Program allowed to extract pp1 packed sprites into NES CHR program and then further modify them. Lost source. Binary is [here](https://cx16forum.com/forum/viewtopic.php?t=7024)."
+        },
+        {
+          "kind": "note",
+          "ver": "Why I'm doing this",
+          "date": "2023",
+          "md": "Super Robin Hood got me started. This game was a trigger that made me want to learn how to program. I found out that Oliver brothers released PDS source code of Super Robin Hood and decided to start RE project."
+        }
+      ]
+    },
+    {
+      "id": "unemups4",
+      "name": "unemups4",
+      "year": 2024,
+      "status": "paused",
+      "descHtml": "An educational <b>PlayStation 4</b> emulator in Rust. High-level emulation: homebrew ELFs run natively on the host x86-64 CPU while the emulator fakes Orbis OS around them — syscall trampolines, UMA memory and a Vulkan presentation backend. Strictly research and learning, not commercial games.",
+      "chips": [
+        "Rust",
+        "x86-64 HLE",
+        "Vulkan"
+      ],
+      "github": "https://github.com/mikolajmikolajczyk/unemups4",
+      "site": null,
+      "shots": [
+        {
+          "src": "media/unemups4-mandelbrot.webp",
+          "alt": "unemups4 mandelbrot",
+          "badge": "mandelbrot"
+        },
+        {
+          "src": "media/unemups4-input-soft.webp",
+          "alt": "unemups4 input program",
+          "badge": "input"
+        }
+      ],
+      "worklog": [
+        {
+          "kind": "note",
+          "ver": "Why I'm doing this",
+          "date": "2024",
+          "md": "I got really interested how emulation of such targets as PS4 works. It seemed unreal to me that shadps4 was able to run commercial games. I wanted to understand basics of how such emulation works."
+        },
+        {
+          "kind": "note",
+          "ver": "Open source",
+          "date": "2026-06",
+          "md": "I finally pushed the code to github for others to see. Not that there is too much to see. Just enough to display small soft rendered examples. Hardest part is still not even started. Now emulator is capable of:\n\n* threading\n* input\n* loading elf (not self)\n* generating syscalls from nid codes\n* displaying software rendered graphics (no gpu emulation at all!)"
+        }
+      ]
+    },
+    {
+      "id": "kronikarz",
+      "name": "Kronikarz",
+      "year": 2023,
+      "status": "paused",
+      "descHtml": "A digitization project for the <b>MERA-400</b> — a Polish minicomputer. A long-term thread born from a deeper fascination with homegrown retro hardware and low-level systems.",
+      "chips": [
+        "retro hardware",
+        "archiving"
+      ],
+      "github": null,
+      "site": null,
+      "shots": [
+        {
+          "src": "media/kronikarz-snapshot.webp",
+          "alt": "kronikarz editor view",
+          "badge": "editor"
+        },
+        {
+          "src": "media/kronikarz-nice-snapshot.webp",
+          "alt": "digitalization-result",
+          "badge": "digitalization"
+        }
+      ],
+      "worklog": [
+        {
+          "kind": "note",
+          "ver": "Status update",
+          "date": "2023",
+          "md": "Kronikarz is somewhat buried in my drawer for now. Code not ready to be shown to the world. It got way more complicated than anticipated really fast."
+        }
+      ]
+    }
+  ],
+  "posts": []
+}

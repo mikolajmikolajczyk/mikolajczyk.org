@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>admin — mikolajczyk.org</title>
+<link rel="stylesheet" href="vendor/easymde.min.css">
+<style>
+  :root {
+    --bg:#0a0e0d; --bg-raised:#111715; --bg-input:#0d1311; --line:#1d2926;
+    --ink:#c9d4d0; --ink-dim:#6b7a75; --ink-faint:#41504b;
+    --acc:#4ade80; --acc-deep:#15803d; --amber:#d9a441; --red:#e5484d;
+    --mono:"JetBrains Mono","SF Mono","Cascadia Code",ui-monospace,"Menlo",monospace;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono); font-size:13px; line-height:1.6; }
+  a { color:var(--acc); }
+  .wrap { max-width:1100px; margin:0 auto; padding:0 24px; }
+
+  /* topbar */
+  .top { position:sticky; top:0; z-index:20; background:rgba(10,14,13,.9); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+  .top .wrap { display:flex; align-items:center; gap:16px; height:56px; }
+  .brand { font-weight:700; color:#eef3f1; font-size:15px; }
+  .brand .dim { color:var(--ink-faint); font-weight:400; }
+  .top .spacer { flex:1; }
+  .who { color:var(--ink-dim); font-size:12px; display:flex; align-items:center; gap:8px; }
+  .who img { width:22px; height:22px; border-radius:50%; border:1px solid var(--line); }
+
+  /* buttons */
+  button { font-family:var(--mono); cursor:pointer; border-radius:5px; border:1px solid var(--line); background:var(--bg-raised); color:var(--ink); font-size:12px; padding:7px 13px; transition:border-color .15s,color .15s,background .15s; }
+  button:hover { border-color:var(--acc-deep); color:var(--acc); }
+  button.primary { background:var(--acc); color:#062b13; border-color:var(--acc); font-weight:600; }
+  button.primary:hover { background:#5ee88f; color:#062b13; }
+  button.ghost { background:none; }
+  button.danger:hover { border-color:var(--red); color:var(--red); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+
+  /* login gate */
+  .gate { min-height:80vh; display:flex; align-items:center; justify-content:center; }
+  .gate .card { max-width:440px; text-align:center; }
+  .gate h1 { font-size:26px; color:#eef3f1; margin:0 0 6px; }
+  .gate p { color:var(--ink-dim); margin:0 0 24px; }
+  .gate .cfgwarn { color:var(--amber); font-size:12px; margin-top:18px; }
+
+  /* layout */
+  .cols { display:grid; grid-template-columns:300px 1fr; gap:0; min-height:calc(100vh - 56px); }
+  .side { border-right:1px solid var(--line); padding:20px 0 0; display:flex; flex-direction:column; }
+  .side .head { display:flex; align-items:center; margin-top:6px; padding:16px 20px 12px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+  .side .head .spacer { flex:1; }
+  .plist { list-style:none; margin:0; padding:0; }
+  .pitem { padding:11px 20px; border-left:2px solid transparent; cursor:pointer; display:flex; align-items:baseline; gap:9px; }
+  .pitem:hover { background:rgba(74,222,128,.04); }
+  .pitem.sel { border-left-color:var(--acc); background:rgba(74,222,128,.06); }
+  .pitem .nm { color:#eef3f1; font-weight:600; }
+  .pitem .yr { color:var(--ink-faint); font-size:11px; margin-left:auto; }
+  .dot { width:6px; height:6px; border-radius:50%; flex:0 0 auto; align-self:center; }
+  .dot.active{background:var(--acc);} .dot.done{background:var(--ink-dim);} .dot.paused{background:var(--amber);}
+  /* unified menu rows — site texts, project items and + new project share one look */
+  .navrow { display:flex; align-items:center; gap:9px; width:100%; text-align:left; background:none; border:none; border-left:2px solid transparent; border-radius:0; padding:11px 20px; color:#eef3f1; font-size:13px; font-weight:600; transition:background .15s,border-color .15s,color .15s; }
+  .navrow:hover { background:rgba(74,222,128,.04); color:#eef3f1; border-color:transparent; }
+  .navrow.sel { border-left-color:var(--acc); background:rgba(74,222,128,.06); }
+  .navrow.dim { color:var(--ink-dim); font-weight:400; }
+  .navrow.dim:hover { color:var(--acc); }
+  .navsep { height:1px; background:var(--line); margin:12px 20px; }
+
+  /* sidebar persist bar (pinned to the bottom) — the only place that writes data */
+  .sidesave { margin-top:auto; position:sticky; bottom:0; background:rgba(10,14,13,.94); backdrop-filter:blur(8px); border-top:1px solid var(--line); padding:14px 20px; display:flex; flex-direction:column; gap:9px; }
+  .sidesave .savebtns { display:flex; flex-direction:column; gap:8px; }
+  .sidesave .savebtns button { width:100%; text-align:center; }
+  .sidesave .reloadbtn { width:100%; text-align:center; color:var(--ink-dim); font-size:11px; }
+  .draftbadge { color:var(--amber); font-size:11px; letter-spacing:.04em; }
+
+  .main { padding:26px 30px 80px; min-width:0; }
+
+  /* form */
+  .field { margin-bottom:16px; }
+  .field > label { display:block; color:var(--ink-dim); font-size:11px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:6px; }
+  .field .hint { color:var(--ink-faint); font-size:11px; text-transform:none; letter-spacing:0; margin-left:8px; }
+  input[type=text], input[type=number], textarea, select {
+    width:100%; font-family:var(--mono); font-size:13px; color:var(--ink);
+    background:var(--bg-input); border:1px solid var(--line); border-radius:5px; padding:9px 11px;
+  }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--acc-deep); }
+  textarea { resize:vertical; min-height:70px; line-height:1.6; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+  /* tag-style multi inputs */
+  .taglist { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+  .taginput { display:flex; align-items:center; gap:5px; background:var(--bg-input); border:1px solid var(--line); border-radius:4px; padding:3px 4px 3px 9px; }
+  .taginput input { border:none; background:none; padding:3px 0; width:120px; }
+  .tagchip { display:inline-flex; align-items:center; gap:6px; background:var(--bg-raised); border:1px solid var(--line); border-radius:4px; padding:3px 6px 3px 9px; font-size:12px; }
+  .tagchip button { border:none; background:none; padding:0 2px; color:var(--ink-faint); font-size:13px; }
+  .tagchip button:hover { color:var(--red); }
+
+  /* sub-cards: shots, worklog */
+  .subhead { display:flex; align-items:center; margin:24px 0 10px; color:var(--ink-dim); font-size:11px; letter-spacing:.16em; text-transform:uppercase; }
+  .subhead .spacer { flex:1; }
+  .subhead::before { content:""; }
+  .card { background:var(--bg-raised); border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:10px; position:relative; }
+  .card .rm { position:absolute; top:10px; right:10px; }
+  .card .kindrow { display:flex; gap:10px; margin-bottom:10px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:5px; overflow:hidden; }
+  .seg button { border:none; border-radius:0; background:none; padding:6px 12px; }
+  .seg button.on { background:var(--acc); color:#062b13; font-weight:600; }
+  .pinbtn { font-size:11px; }
+  .pinbtn.on { border-color:var(--acc-deep); color:var(--acc); }
+
+  .wlprev { margin-top:8px; border-top:1px dashed var(--line); padding-top:10px; }
+  .wlprev-label { color:var(--ink-faint); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px; }
+  .wlprev-body { color:var(--ink-dim); }
+  .wlprev-body p { margin:0 0 8px; } .wlprev-body ul { margin:0 0 8px; padding-left:18px; }
+  .wlprev-body code { background:var(--bg-input); border:1px solid var(--line); border-radius:3px; padding:1px 5px; color:var(--ink); }
+  .wlprev-body strong { color:var(--ink); } .wlprev-body a { color:var(--acc); }
+  .wlprev-body img { max-width:100%; height:auto; border:1px solid var(--line); border-radius:4px; margin:6px 0; }
+  .wlprev-body h1,.wlprev-body h2,.wlprev-body h3,.wlprev-body h4,.wlprev-body h5,.wlprev-body h6 { color:#eef3f1; font-weight:700; font-size:12px; letter-spacing:.04em; text-transform:uppercase; margin:12px 0 6px; }
+
+  /* ---- media library ---- */
+  .dropzone { border:1px dashed var(--line); border-radius:8px; padding:26px 18px; text-align:center; color:var(--ink-dim); }
+  .dropzone.drag { border-color:var(--acc); background:rgba(74,222,128,.05); color:var(--acc); }
+  .mediagrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .mcard { border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--bg-raised); }
+  .mcard .thumb { width:100%; height:110px; object-fit:cover; display:block; background:var(--bg-input); }
+  .mcard .mname { font-size:11px; color:var(--ink-dim); padding:6px 8px; word-break:break-all; }
+  .mcard .mact { display:flex; gap:4px; padding:0 8px 8px; }
+  .mcard .mact button { flex:1; font-size:11px; padding:4px 2px; }
+  .srcrow { display:flex; gap:12px; align-items:flex-end; margin-bottom:14px; }
+  .srcthumb { width:72px; height:48px; object-fit:cover; border:1px solid var(--line); border-radius:4px; background:var(--bg-input); flex:0 0 auto; }
+  .emoji-cheats { margin:16px 0; }
+  .emoji-cheats summary { cursor:pointer; color:var(--ink-dim); font-size:12px; }
+  .emojigrid { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .emojichip { font-size:11px; background:var(--bg-input); border:1px solid var(--line); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--ink-dim); font-family:var(--mono); }
+  .emojichip:hover { border-color:var(--acc-deep); color:var(--acc); }
+
+  .addbtn { border-style:dashed; width:100%; padding:9px; color:var(--ink-dim); }
+
+  /* editor footer row (delete + hint only — saving lives in the sidebar) */
+  .actions { margin-top:30px; border-top:1px solid var(--line); padding-top:16px; display:flex; align-items:center; gap:12px; }
+  .actions .spacer { flex:1; }
+  .savehint { color:var(--ink-faint); font-size:11px; }
+  .status { font-size:12px; color:var(--ink-dim); min-height:1.2em; }
+  .status.ok { color:var(--acc); } .status.err { color:var(--red); } .status.busy { color:var(--amber); }
+
+  .empty { color:var(--ink-faint); padding:60px 20px; text-align:center; }
+
+  /* toast */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-raised); border:1px solid var(--acc-deep); color:var(--ink); padding:12px 18px; border-radius:6px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:60; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(-4px); }
+  .toast.err { border-color:var(--red); }
+
+  .diag { font-size:11px; color:var(--ink-faint); }
+
+  /* ---- EasyMDE dark theme (match admin) ---- */
+  .EasyMDEContainer .editor-toolbar { background:var(--bg-raised); border:1px solid var(--line); border-bottom:none; border-radius:5px 5px 0 0; opacity:1; }
+  .EasyMDEContainer .editor-toolbar button { color:var(--ink-dim) !important; border:none; font-family:var(--mono); font-weight:600; }
+  .EasyMDEContainer .editor-toolbar button:hover,
+  .EasyMDEContainer .editor-toolbar button.active { background:rgba(74,222,128,.1); border-color:transparent; color:var(--acc) !important; }
+  .EasyMDEContainer .editor-toolbar i.separator { border-left:1px solid var(--line); border-right:none; }
+  .EasyMDEContainer .CodeMirror { background:var(--bg-input); color:var(--ink); border:1px solid var(--line); border-radius:0 0 5px 5px; }
+  .EasyMDEContainer .CodeMirror-cursor { border-color:var(--acc); }
+  .EasyMDEContainer .CodeMirror-selected { background:rgba(74,222,128,.15) !important; }
+  .cm-s-easymde .cm-header, .cm-s-easymde .cm-strong { color:#eef3f1; }
+  .cm-s-easymde .cm-em { color:var(--ink); }
+  .cm-s-easymde .cm-link, .cm-s-easymde .cm-url { color:var(--acc); }
+  .cm-s-easymde .cm-comment { color:var(--amber); }
+  .cm-s-easymde .cm-quote { color:var(--ink-dim); }
+</style>
+</head>
+<body>
+
+<!-- ============ TOPBAR ============ -->
+<div class="top" id="topbar" hidden>
+  <div class="wrap">
+    <span class="brand">admin<span class="dim"> · mikolajczyk.org</span></span>
+    <span class="spacer"></span>
+    <span class="who" id="who"></span>
+    <button class="ghost" id="logoutBtn">log out</button>
+  </div>
+</div>
+
+<!-- ============ LOGIN GATE ============ -->
+<div class="gate" id="gate">
+  <div class="card">
+    <h1>admin</h1>
+    <p>Log in with GitHub to edit projects and site texts.</p>
+    <button class="primary" id="loginBtn">Log in with GitHub</button>
+    <div class="cfgwarn" id="cfgWarn" hidden></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <div class="cols">
+    <!-- sidebar -->
+    <aside class="side">
+      <button class="navrow dim" id="addPostBtn">+ new post</button>
+      <button class="navrow dim" id="addProjectBtn">+ new project</button>
+      <div class="head">General</div>
+      <button class="navrow" id="editSiteBtn">✎ site texts</button>
+      <button class="navrow" id="mediaBtn">▦ media</button>
+      <div class="head">Projects <span class="spacer"></span><span class="diag" id="pcount"></span></div>
+      <ul class="plist" id="plist"></ul>
+      <div class="head">Posts <span class="spacer"></span><span class="diag" id="postcount"></span></div>
+      <ul class="plist" id="postlist"></ul>
+
+      <!-- persist bar: the ONLY thing that writes data. Everything else edits a
+           working copy held in this browser (localStorage). -->
+      <div class="sidesave">
+        <div class="draftbadge" id="draftBadge" hidden>● unsaved changes</div>
+        <span class="status" id="status"></span>
+        <div class="savebtns" id="saveButtons"></div>
+        <button class="ghost reloadbtn" id="previewBtn">↗ preview (new tab)</button>
+        <button class="ghost reloadbtn" id="reloadBtn">reload from repo (discard draft)</button>
+      </div>
+    </aside>
+
+    <!-- main editor -->
+    <main class="main" id="editor">
+      <div class="empty">Select a project from the list, or add a new one.</div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/easymde.min.js"></script>
+<script type="module">
+import { GitHubAuth } from "./github-auth.js";
+
+/* ============================================================
+   CONFIG — fill in your own values
+   ============================================================ */
+const CONFIG = {
+  clientId:   "Iv1.REPLACE_ME",                       // GitHub App client_id
+  workerUrl:  "https://gh-auth.REPLACE.workers.dev",  // OAuth broker Worker
+  owner:      "mikolajmikolajczyk",                   // repo owner
+  repo:       "mikolajczyk.org",                      // site repo
+  branch:     "main",                                 // branch to commit to
+  path:       "projects.json",                        // file path in the repo
+  redirectUri: location.origin + location.pathname,   // callback = this page
+};
+
+const auth = new GitHubAuth({
+  clientId: CONFIG.clientId,
+  workerUrl: CONFIG.workerUrl,
+  redirectUri: CONFIG.redirectUri,
+});
+
+/* ---------- state ----------
+   `state` is the working copy. Every add/delete/edit mutates it and is mirrored
+   to localStorage (the draft), so a page reload never loses unsaved work. Only
+   the sidebar save buttons push the working copy to projects.json / the repo. */
+let state = {
+  version: 1,
+  site: { name:"", role:"", bio:[], footer:[] },
+  projects: [],
+  posts: [],
+};
+let fileSha = null;       // sha of projects.json for the commit
+let selected = null;      // index of selected project, or 'site', or null
+let dirty = false;        // working copy differs from the last saved state
+let LOCAL = false;        // true when served by dev.mjs (local mode, no login)
+let newPost = null;       // transient new-post buffer (not in state until you start typing)
+let baseline = null;      // raw projects.json text this session loaded (local-mode stale-write guard)
+
+const DRAFT_KEY = "admin_draft_v1";
+
+const $ = sel => document.querySelector(sel);
+const STATUS = { active:"active", done:"done", paused:"paused" };
+
+// Sidebar save buttons (save on top, save + commit below). Local mode splits
+// save (file + rebuild) from save + commit (the same, plus a local `git commit`).
+// GitHub mode has a single button that commits via the Contents API.
+function saveButtonsHtml(){
+  return LOCAL
+    ? `<button class="primary" id="saveBtn">save</button><button class="ghost" id="saveCommitBtn">save + commit</button>`
+    : `<button class="primary" id="saveBtn">save (commit)</button>`;
+}
+
+/* ============================================================
+   working copy <-> localStorage draft
+   ============================================================ */
+// posts without a body are still being drafted — exclude them from output/draft/preview
+function buildDoc(){ return { version:1, site:state.site, projects:state.projects, posts:state.posts.filter(p=>p.md && p.md.trim()) }; }
+function persistDraft(){ try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDoc())); }catch{} }
+function readDraft(){ try{ const t=localStorage.getItem(DRAFT_KEY); return t?JSON.parse(t):null; }catch{ return null; } }
+function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch{} }
+function updateDraftBadge(){ const b=$("#draftBadge"); if(b) b.hidden=!dirty; }
+
+// called by every mutation: flag dirty + autosave the draft
+function markDirty(){ dirty=true; persistDraft(); updateDraftBadge(); }
+// in sync with the repo/file, no draft
+function markClean(){ dirty=false; updateDraftBadge(); }
+// just persisted: drop the draft
+function markSaved(){ dirty=false; clearDraft(); updateDraftBadge(); }
+
+/* ============================================================
+   markdown preview (same minimal parser as the front)
+   ============================================================ */
+const EMOJI = {rocket:"🚀",sparkles:"✨",tada:"🎉",fire:"🔥",bug:"🐛",wrench:"🔧",hammer:"🔨","hammer_and_wrench":"🛠️",tools:"🛠️",gear:"⚙️",zap:"⚡",boom:"💥",warning:"⚠️",white_check_mark:"✅",x:"❌",heavy_check_mark:"✔️",heavy_plus_sign:"➕",heavy_minus_sign:"➖","+1":"👍","-1":"👎",art:"🎨",recycle:"♻️",lock:"🔒",unlock:"🔓",key:"🔑",book:"📖",books:"📚",memo:"📝",pencil:"✏️",bulb:"💡",rotating_light:"🚨",package:"📦",construction:"🚧",rainbow:"🌈",ambulance:"🚑",lipstick:"💄",green_heart:"💚",heart:"❤️",broken_heart:"💔",arrow_up:"⬆️",arrow_down:"⬇️",bookmark:"🔖",gem:"💎",tractor:"🚜",eyes:"👀",thumbsup:"👍",thumbsdown:"👎",point_right:"👉",point_left:"👈",star:"⭐","100":"💯",ok_hand:"👌",raised_hands:"🙌",pray:"🙏",clap:"👏",wave:"👋",computer:"💻",keyboard:"⌨️",floppy_disk:"💾",calendar:"📅",link:"🔗",mag:"🔍",label:"🏷️",robot:"🤖",alien:"👽",space_invader:"👾",video_game:"🎮",joystick:"🕹️",penguin:"🐧",crab:"🦀",snake:"🐍",coffee:"☕",seedling:"🌱",hourglass:"⏳",checkered_flag:"🏁",dart:"🎯",speech_balloon:"💬",thought_balloon:"💭",smile:"😄",grin:"😁",wink:"😉",thinking:"🤔",bell:"🔔",sound:"🔊",mute:"🔇",camera:"📷",scroll:"📜",sos:"🆘",new:"🆕",ok:"🆗"};
+const emoji = s => s.replace(/:([a-z0-9_+-]+):/g, (m,n)=> EMOJI[n] || m);
+// collapsible cheat-sheet of available :shortcodes: — click a chip to copy it
+function emojiCheatHtml(){
+  return `<details class="emoji-cheats"><summary>emoji shortcodes — click to copy (${Object.keys(EMOJI).length})</summary><div class="emojigrid">`
+    + Object.entries(EMOJI).map(([k,v])=>`<button type="button" class="emojichip" data-code=":${k}:" title=":${k}:">${v} :${k}:</button>`).join("")
+    + `</div></details>`;
+}
+function md(src){
+  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inline = s => emoji(esc(s)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>"));
+  return (src||"").split(/\n\n+/).map(b=>{
+    const lines=b.split("\n");
+    const hm=b.match(/^(#{1,6})\s+(.*)$/);
+    if(lines.length===1 && hm){ const n=hm[1].length; return `<h${n}>`+inline(hm[2])+`</h${n}>`; }
+    if(lines.every(l=>/^\s*[-*+]\s+/.test(l)))
+      return "<ul>"+lines.map(l=>"<li>"+inline(l.replace(/^\s*[-*+]\s+/,""))+"</li>").join("")+"</ul>";
+    return "<p>"+inline(b)+"</p>";
+  }).join("");
+}
+
+/* ============================================================
+   EasyMDE markdown editors (vendored, offline). One per markdown field.
+   ============================================================ */
+let MDES = [];
+function clearMDEs(){ MDES.forEach(m=>{ try{ m.toTextArea(); }catch{} }); MDES=[]; }
+function makeMDE(el, onChange){
+  const mde = new EasyMDE({
+    element: el,
+    autoDownloadFontAwesome: false,   // text-label toolbar below; no Font Awesome needed
+    autofocus: false,
+    spellChecker: false,
+    status: false,
+    minHeight: "120px",
+    initialValue: el.value,
+    toolbar: [
+      { name:"bold",   action: EasyMDE.toggleBold,          text:"B",   title:"Bold" },
+      { name:"italic", action: EasyMDE.toggleItalic,        text:"i",   title:"Italic" },
+      { name:"code",   action: EasyMDE.toggleCodeBlock,     text:"</>", title:"Code" },
+      "|",
+      { name:"ul",     action: EasyMDE.toggleUnorderedList, text:"•",   title:"Bullet list" },
+      { name:"link",   action: EasyMDE.drawLink,            text:"↗",   title:"Link" },
+    ],
+  });
+  mde.codemirror.on("change", ()=> onChange(mde.value()));
+  MDES.push(mde);
+  return mde;
+}
+
+/* ============================================================
+   lightweight validation (mirrors schema.json essentials)
+   ============================================================ */
+function validate(doc){
+  const errs=[];
+  const ids=new Set();
+  if(!Array.isArray(doc.projects)) errs.push("projects is not a list");
+  (doc.projects||[]).forEach((p,i)=>{
+    const at=`project #${i+1}`;
+    if(!/^[a-z0-9-]+$/.test(p.id||"")) errs.push(`${at}: id must be [a-z0-9-] (got: "${p.id}")`);
+    if(ids.has(p.id)) errs.push(`${at}: duplicate id "${p.id}"`);
+    ids.add(p.id);
+    if(!p.name) errs.push(`${at}: missing name`);
+    if(!Number.isInteger(p.year)||p.year<1990||p.year>2100) errs.push(`${at}: year out of range`);
+    if(!["active","done","paused"].includes(p.status)) errs.push(`${at}: status must be active/done/paused`);
+    if(!p.descHtml) errs.push(`${at}: missing description`);
+    (p.worklog||[]).forEach((e,j)=>{
+      const w=`${at} / entry #${j+1}`;
+      if(!["release","note"].includes(e.kind)) errs.push(`${w}: kind must be release/note`);
+      if(!e.ver) errs.push(`${w}: missing version/title`);
+      if(!/^\d{4}(-\d{2})?(-\d{2})?$/.test(e.date||"")) errs.push(`${w}: date must be YYYY / YYYY-MM / YYYY-MM-DD`);
+      if(!e.md) errs.push(`${w}: empty body`);
+    });
+  });
+  const pids=new Set();
+  (doc.posts||[]).forEach((p,i)=>{
+    const at=`post #${i+1}`;
+    if(!/^[a-z0-9-]+$/.test(p.id||"")) errs.push(`${at}: id must be [a-z0-9-] (got: "${p.id}")`);
+    if(pids.has(p.id)) errs.push(`${at}: duplicate id "${p.id}"`);
+    pids.add(p.id);
+    if(!/^\d{4}(-\d{2})?(-\d{2})?$/.test(p.date||"")) errs.push(`${at}: date must be YYYY / YYYY-MM / YYYY-MM-DD`);
+    if(!p.md) errs.push(`${at}: empty body`);
+  });
+  return errs;
+}
+
+/* ============================================================
+   rendering: sidebar
+   ============================================================ */
+function renderSidebar(){
+  const ul=$("#plist");
+  ul.innerHTML = state.projects.map((p,i)=>`
+    <li class="pitem ${selected===i?'sel':''}" data-i="${i}">
+      <span class="dot ${p.status}"></span>
+      <span class="nm">${p.name||'(no name)'}</span>
+      <span class="yr">${p.year||''}</span>
+    </li>`).join("");
+  $("#pcount").textContent = state.projects.length + " items";
+  ul.querySelectorAll(".pitem").forEach(li=>{
+    li.onclick=()=>{ selectProject(+li.dataset.i); };
+  });
+
+  const pl=$("#postlist");
+  pl.innerHTML = (state.posts||[]).map((p,i)=>`
+    <li class="pitem ${selected==='post:'+i?'sel':''}" data-pi="${i}">
+      <span class="dot done"></span>
+      <span class="nm">${esc(p.title||p.date||'(untitled)')}</span>
+      <span class="yr">${esc((p.date||'').slice(0,4))}</span>
+    </li>`).join("");
+  $("#postcount").textContent = (state.posts||[]).length + " items";
+  pl.querySelectorAll(".pitem").forEach(li=> li.onclick=()=> selectPost(+li.dataset.pi));
+
+  const sb=$("#editSiteBtn"); if(sb) sb.classList.toggle("sel", selected==="site");
+  const mb=$("#mediaBtn"); if(mb) mb.classList.toggle("sel", selected==="media");
+  const npb=$("#addPostBtn"); if(npb) npb.classList.toggle("sel", selected==="newpost");
+}
+
+/* ============================================================
+   rendering: project editor
+   ============================================================ */
+function selectProject(i){
+  // no confirm: switching selection keeps the working copy; edits are not lost
+  selected=i;
+  renderSidebar();
+  renderEditor();
+}
+function selectPost(i){
+  selected="post:"+i;
+  renderSidebar();
+  renderEditor();
+}
+
+function renderEditor(){
+  clearMDEs();   // tear down any editors from the previous view while their DOM is still present
+  if(selected==="site"){ renderSiteEditor(); return; }
+  if(selected==="media"){ renderMediaEditor(); return; }
+  if(selected==="newpost"){ renderNewPost(); return; }
+  if(typeof selected==="string" && selected.startsWith("post:")){ renderPostEditor(+selected.slice(5)); return; }
+  if(selected===null){ $("#editor").innerHTML='<div class="empty">Select a project from the list, or add a new one.</div>'; return; }
+  const p=state.projects[selected];
+  $("#editor").innerHTML = `
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="f-name" value="${attr(p.name)}">
+    </div>
+    <div class="row3">
+      <div class="field"><label>id <span class="hint">slug for the URL</span></label><input type="text" id="f-id" value="${attr(p.id)}"></div>
+      <div class="field"><label>Year</label><input type="number" id="f-year" value="${attr(p.year)}"></div>
+      <div class="field"><label>Status</label>
+        <select id="f-status">
+          ${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${p.status===k?'selected':''}>${v}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Description <span class="hint">simple &lt;b&gt; allowed</span></label>
+      <textarea id="f-desc">${esc(p.descHtml)}</textarea>
+    </div>
+    <div class="row2">
+      <div class="field"><label>GitHub URL <span class="hint">empty = none</span></label><input type="text" id="f-github" value="${attr(p.github||'')}"></div>
+      <div class="field"><label>Site URL <span class="hint">empty = none</span></label><input type="text" id="f-site" value="${attr(p.site||'')}"></div>
+    </div>
+    <div class="field">
+      <label>Tags / chips</label>
+      <div class="taglist" id="chips"></div>
+    </div>
+
+    <div class="subhead">Screenshots <span class="spacer"></span></div>
+    <div id="shots"></div>
+    <button class="addbtn" id="addShot">+ add screenshot</button>
+
+    <div class="subhead">Worklog <span class="spacer"></span></div>
+    <button class="addbtn" id="addWl">+ add entry</button>
+    <div id="worklog"></div>
+
+    <div class="actions">
+      <button class="danger" id="deleteBtn">delete project</button>
+      <span class="spacer"></span>
+      <span class="savehint">Edits live in this browser — Save (sidebar) to persist.</span>
+    </div>
+  `;
+  bindProjectFields(p);
+  renderChips(p);
+  renderShots(p);
+  renderWorklog(p);
+  bindActions();
+}
+
+function bindProjectFields(p){
+  $("#f-name").oninput   = e=>{ p.name=e.target.value; markDirty(); renderSidebar(); };
+  $("#f-id").oninput     = e=>{ p.id=e.target.value; markDirty(); };
+  $("#f-year").oninput   = e=>{ p.year=parseInt(e.target.value,10)||0; markDirty(); renderSidebar(); };
+  $("#f-status").onchange= e=>{ p.status=e.target.value; markDirty(); renderSidebar(); };
+  $("#f-desc").oninput   = e=>{ p.descHtml=e.target.value; markDirty(); };
+  $("#f-github").oninput = e=>{ p.github=e.target.value.trim()||null; markDirty(); };
+  $("#f-site").oninput   = e=>{ p.site=e.target.value.trim()||null; markDirty(); };
+}
+
+/* chips */
+function renderChips(p){
+  p.chips = p.chips||[];
+  const box=$("#chips");
+  box.innerHTML = p.chips.map((c,i)=>`
+    <span class="tagchip">${esc(c)} <button data-i="${i}" title="remove">×</button></span>`).join("")
+    + `<span class="taginput"><input type="text" id="chipNew" placeholder="add…"></span>`;
+  box.querySelectorAll(".tagchip button").forEach(b=>{
+    b.onclick=()=>{ p.chips.splice(+b.dataset.i,1); markDirty(); renderChips(p); };
+  });
+  const inp=$("#chipNew");
+  inp.onkeydown=e=>{
+    if(e.key==="Enter"&&inp.value.trim()){ p.chips.push(inp.value.trim()); markDirty(); renderChips(p); $("#chipNew").focus(); }
+  };
+}
+
+/* shots */
+function renderShots(p){
+  p.shots = p.shots||[];
+  $("#shots").innerHTML = p.shots.map((s,i)=>{
+    const isReal = s.src!==undefined && s.placeholder===undefined;
+    return `
+    <div class="card" data-i="${i}">
+      <button class="ghost rm danger" data-rm="${i}">remove</button>
+      <div class="kindrow">
+        <div class="seg">
+          <button data-type="real" data-i="${i}" class="${isReal?'on':''}">real shot</button>
+          <button data-type="ph" data-i="${i}" class="${!isReal?'on':''}">placeholder</button>
+        </div>
+      </div>
+      ${isReal ? `
+        <div class="srcrow">
+          <img class="srcthumb" src="${attr(adminMediaUrl(s.src))}" alt="" style="${s.src?'':'display:none'}">
+          <div class="field" style="flex:1"><label>src <span class="hint">pick from media or type a path</span></label>
+            <input type="text" list="mediaOptions" data-f="src" data-i="${i}" value="${attr(s.src||'')}" placeholder="media/…"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>badge</label><input type="text" data-f="badge" data-i="${i}" value="${attr(s.badge||'')}"></div>
+          <div class="field"><label>alt</label><input type="text" data-f="alt" data-i="${i}" value="${attr(s.alt||'')}"></div>
+        </div>`
+      : `
+        <div class="field"><label>placeholder <span class="hint">filename label shown until a real shot replaces it</span></label>
+        <input type="text" data-f="placeholder" data-i="${i}" value="${attr(s.placeholder||'')}"></div>`}
+    </div>`;
+  }).join("") + mediaDatalistHtml();
+  const box=$("#shots");
+  box.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ p.shots.splice(+b.dataset.rm,1); markDirty(); renderShots(p); });
+  box.querySelectorAll("[data-type]").forEach(b=> b.onclick=()=>{
+    const i=+b.dataset.i;
+    p.shots[i] = b.dataset.type==="real" ? {src:"",alt:""} : {placeholder:"img/.png"};
+    markDirty(); renderShots(p);
+  });
+  box.querySelectorAll("input[data-f]").forEach(inp=> inp.oninput=()=>{
+    const i=+inp.dataset.i, f=inp.dataset.f, v=inp.value;
+    if(f==="badge"||f==="alt"){ if(v) p.shots[i][f]=v; else delete p.shots[i][f]; }
+    else p.shots[i][f]=v;
+    markDirty();
+    if(f==="src"){ const t=inp.closest(".card").querySelector(".srcthumb"); if(t){ t.src=adminMediaUrl(v); t.style.display=v?"":"none"; } }
+  });
+}
+
+/* worklog */
+function renderWorklog(p){
+  clearMDEs();
+  p.worklog = p.worklog||[];
+  $("#worklog").innerHTML = p.worklog.map((e,i)=>`
+    <div class="card" data-i="${i}">
+      <button class="ghost rm danger" data-rm="${i}">remove</button>
+      <div class="kindrow">
+        <div class="seg">
+          <button data-kind="release" data-i="${i}" class="${e.kind==='release'?'on':''}">release</button>
+          <button data-kind="note" data-i="${i}" class="${e.kind==='note'?'on':''}">note</button>
+        </div>
+        <button class="pinbtn ${e.pinned?'on':''}" data-pin="${i}">${e.pinned?'📌 pinned':'pin'}</button>
+        <button class="pinbtn ${e.feed===false?'':'on'}" data-feed="${i}" title="show in the home feed">${e.feed===false?'feed ✕':'feed ✓'}</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>version / title</label><input type="text" data-w="ver" data-i="${i}" value="${attr(e.ver||'')}"></div>
+        <div class="field"><label>date <span class="hint">YYYY / YYYY-MM / YYYY-MM-DD</span></label><input type="text" data-w="date" data-i="${i}" value="${attr(e.date||'')}"></div>
+      </div>
+      <div class="field"><label>body (markdown)</label><textarea data-w="md" data-i="${i}">${esc(e.md||'')}</textarea></div>
+      <div class="wlprev">
+        <div class="wlprev-label">preview</div>
+        <div class="wlprev-body" data-prev="${i}">${md(e.md||'')}</div>
+      </div>
+      ${emojiCheatHtml()}
+    </div>`).join("");
+  const box=$("#worklog");
+  box.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ p.worklog.splice(+b.dataset.rm,1); markDirty(); renderWorklog(p); });
+  box.querySelectorAll("[data-kind]").forEach(b=> b.onclick=()=>{ p.worklog[+b.dataset.i].kind=b.dataset.kind; markDirty(); renderWorklog(p); });
+  box.querySelectorAll("[data-pin]").forEach(b=> b.onclick=()=>{ const e=p.worklog[+b.dataset.pin]; if(e.pinned) delete e.pinned; else e.pinned=true; markDirty(); renderWorklog(p); });
+  box.querySelectorAll("[data-feed]").forEach(b=> b.onclick=()=>{ const e=p.worklog[+b.dataset.feed]; if(e.feed===false) delete e.feed; else e.feed=false; markDirty(); renderWorklog(p); });
+  box.querySelectorAll("input[data-w]").forEach(el=> el.oninput=()=>{
+    p.worklog[+el.dataset.i][el.dataset.w]=el.value; markDirty();
+  });
+  box.querySelectorAll("textarea[data-w='md']").forEach(el=>{
+    const i=+el.dataset.i, prev=box.querySelector(`[data-prev="${i}"]`);
+    makeMDE(el, val=>{ p.worklog[i].md=val; markDirty(); if(prev) prev.innerHTML=md(val); });
+  });
+}
+
+/* ============================================================
+   site-text editor
+   ============================================================ */
+function renderSiteEditor(){
+  const s=state.site;
+  $("#editor").innerHTML = `
+    <div class="field"><label>Name / heading</label><input type="text" id="s-name" value="${attr(s.name)}"></div>
+    <div class="field"><label>Role <span class="hint">simple &lt;b&gt; allowed</span></label><input type="text" id="s-role" value="${attr(s.role)}"></div>
+    <div class="field"><label>Bio <span class="hint">one paragraph per block (blank line separates)</span></label>
+      <textarea id="s-bio" style="min-height:120px">${esc((s.bio||[]).join("\n\n"))}</textarea>
+    </div>
+    <div class="subhead">Footer links</div>
+    <div id="footer"></div>
+    <button class="addbtn" id="addFoot">+ add link</button>
+    <div class="actions">
+      <span class="savehint">Edits live in this browser — Save (sidebar) to persist.</span>
+    </div>`;
+  $("#s-name").oninput = e=>{ s.name=e.target.value; markDirty(); };
+  $("#s-role").oninput = e=>{ s.role=e.target.value; markDirty(); };
+  $("#s-bio").oninput  = e=>{ s.bio=e.target.value.split(/\n\n+/).map(x=>x.trim()).filter(Boolean); markDirty(); };
+  renderFooter();
+  bindActions();
+}
+function renderFooter(){
+  const s=state.site; s.footer=s.footer||[];
+  $("#footer").innerHTML = s.footer.map((f,i)=>`
+    <div class="card" data-i="${i}">
+      <button class="ghost rm danger" data-rm="${i}">remove</button>
+      <div class="row2">
+        <div class="field"><label>label</label><input type="text" data-foot="label" data-i="${i}" value="${attr(f.label||'')}"></div>
+        <div class="field"><label>href</label><input type="text" data-foot="href" data-i="${i}" value="${attr(f.href||'')}"></div>
+      </div>
+    </div>`).join("");
+  const box=$("#footer");
+  box.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ s.footer.splice(+b.dataset.rm,1); markDirty(); renderFooter(); });
+  box.querySelectorAll("input[data-foot]").forEach(inp=> inp.oninput=()=>{ s.footer[+inp.dataset.i][inp.dataset.foot]=inp.value; markDirty(); });
+  $("#addFoot").onclick=()=>{ s.footer.push({label:"",href:""}); markDirty(); renderFooter(); };
+}
+
+/* ============================================================
+   editor actions: delete + add-row buttons (these mutate the working copy)
+   ============================================================ */
+function bindActions(){
+  const del=$("#deleteBtn"); if(del) del.onclick=deleteProject;
+  $("#addShot")?.addEventListener("click",()=>{ const p=state.projects[selected]; (p.shots=p.shots||[]).push({src:"",alt:""}); markDirty(); renderShots(p); });
+  $("#addWl")?.addEventListener("click",()=>{ const p=state.projects[selected]; (p.worklog=p.worklog||[]).unshift({kind:"release",ver:"",date:String(new Date().getFullYear()),md:""}); markDirty(); renderWorklog(p); });
+}
+
+function addProject(){
+  const p={ id:"new-project", name:"New project", year:new Date().getFullYear(), status:"active",
+    descHtml:"", chips:[], github:null, site:null, shots:[], worklog:[] };
+  state.projects.unshift(p);
+  selected=0; markDirty();
+  renderSidebar(); renderEditor();
+}
+function deleteProject(){
+  const p=state.projects[selected];
+  if(!confirm(`Delete project "${p.name}"? (takes effect when you Save)`)) return;
+  state.projects.splice(selected,1);
+  selected=null; markDirty();
+  renderSidebar(); renderEditor();
+}
+
+/* ============================================================
+   posts editor
+   ============================================================ */
+function renderPostEditor(i){
+  const p=state.posts[i];
+  if(!p){ selected="newpost"; newPost=null; renderEditor(); return; }
+  renderPostFields(p, false);
+}
+function renderNewPost(){
+  if(!newPost) newPost = { id:"", date:String(new Date().getFullYear()), title:"", md:"" };
+  renderPostFields(newPost, true);
+}
+// shared by the existing-post editor and the transient new-post editor.
+// For a new post, the first edit "materialises" it into state.posts without re-rendering
+// (so focus/cursor is kept), after which it behaves like a normal post.
+function renderPostFields(p, isNew){
+  const touch = ()=>{
+    if(isNew && newPost){ state.posts.unshift(newPost); selected="post:0"; newPost=null; isNew=false; renderSidebar(); }
+    markDirty();
+  };
+  $("#editor").innerHTML = `
+    ${isNew?'<div class="savehint" style="margin:0 0 14px">New post — start typing; it joins the list once it has a body.</div>':''}
+    <div class="row2">
+      <div class="field"><label>id <span class="hint">slug for #/post/&lt;id&gt;</span></label><input type="text" id="p-id" value="${attr(p.id)}"></div>
+      <div class="field"><label>date <span class="hint">YYYY / YYYY-MM / YYYY-MM-DD</span></label><input type="text" id="p-date" value="${attr(p.date)}"></div>
+    </div>
+    <div class="field"><label>title <span class="hint">optional — omit for a microblog note</span></label><input type="text" id="p-title" value="${attr(p.title||'')}"></div>
+    <div class="field"><label>body (markdown)</label><textarea id="p-md" style="min-height:160px">${esc(p.md||'')}</textarea></div>
+    <div class="wlprev">
+      <div class="wlprev-label">preview</div>
+      <div class="wlprev-body" id="p-prev">${md(p.md||'')}</div>
+    </div>
+    ${emojiCheatHtml()}
+    <div class="actions">
+      <button class="danger" id="deletePostBtn">${isNew?'discard':'delete post'}</button>
+      <span class="spacer"></span>
+      <span class="savehint">Edits live in this browser — Save (sidebar) to persist.</span>
+    </div>`;
+  $("#p-id").oninput    = e=>{ p.id=e.target.value; touch(); };
+  $("#p-date").oninput  = e=>{ p.date=e.target.value; touch(); renderSidebar(); };
+  $("#p-title").oninput = e=>{ const v=e.target.value; if(v) p.title=v; else delete p.title; touch(); renderSidebar(); };
+  makeMDE($("#p-md"), val=>{ p.md=val; touch(); $("#p-prev").innerHTML=md(val); });
+  $("#deletePostBtn").onclick = ()=>{ if(selected==="newpost"){ newPost=null; renderEditor(); } else deletePost(); };
+}
+function startNewPost(){
+  newPost = null;            // fresh transient buffer; renderNewPost will seed it
+  selected = "newpost";
+  renderSidebar(); renderEditor();
+}
+function deletePost(){
+  const i=+selected.slice(5); const p=state.posts[i];
+  if(!confirm(`Delete post "${p.title||p.date}"? (takes effect when you Save)`)) return;
+  state.posts.splice(i,1);
+  selected=null; markDirty();
+  renderSidebar(); renderEditor();
+}
+
+/* ============================================================
+   media library (images) — NOT part of the JSON working copy.
+   Uploads/deletes write files immediately: local mode via the dev server,
+   GitHub mode via the Contents API (each is its own commit). Browser converts
+   images to WebP/AVIF before upload. Reference them in markdown as media/<name>.
+   ============================================================ */
+const MEDIA_API = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/media`;
+let media = [];
+
+function renderMediaEditor(){
+  $("#editor").innerHTML = `
+    <div class="field">
+      <label>Upload images <span class="hint">converted to WebP/AVIF in your browser before upload</span></label>
+      <div class="dropzone" id="drop">
+        Drop images here, or <button type="button" class="ghost" id="pickBtn">choose files</button>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      </div>
+      <div class="status" id="upStatus"></div>
+    </div>
+    <div class="subhead">Library <span class="spacer"></span><span class="diag" id="mcount"></span></div>
+    <div class="mediagrid" id="mediagrid"><div class="empty">loading…</div></div>`;
+  const drop=$("#drop"), input=$("#fileInput");
+  $("#pickBtn").onclick=()=>input.click();
+  input.onchange=()=>{ handleFiles([...input.files]); input.value=""; };
+  drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drag"); };
+  drop.ondragleave=()=>drop.classList.remove("drag");
+  drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drag"); handleFiles([...e.dataTransfer.files]); };
+  loadMedia();
+}
+
+function renderMediaGrid(){
+  const g=$("#mediagrid"); if(!g) return;
+  const mc=$("#mcount"); if(mc) mc.textContent = media.length + " files";
+  g.innerHTML = media.length ? media.map(m=>`
+    <div class="mcard">
+      <img class="thumb" src="${attr(m.url)}" alt="${attr(m.name)}" loading="lazy">
+      <div class="mname">${esc(m.name)}</div>
+      <div class="mact">
+        <button data-md="${attr(m.name)}" title="copy markdown ![](…)">md</button>
+        <button data-path="${attr(m.name)}" title="copy path">path</button>
+        <button class="danger" data-del="${attr(m.name)}" title="delete">×</button>
+      </div>
+    </div>`).join("") : '<div class="empty">No images yet. Upload some above.</div>';
+  g.querySelectorAll("[data-md]").forEach(b=> b.onclick=()=>copyText(`![](media/${b.dataset.md})`,"markdown"));
+  g.querySelectorAll("[data-path]").forEach(b=> b.onclick=()=>copyText(`media/${b.dataset.path}`,"path"));
+  g.querySelectorAll("[data-del]").forEach(b=> b.onclick=()=>deleteMedia(b.dataset.del));
+}
+
+function copyText(text,label){
+  navigator.clipboard?.writeText(text).then(()=>toast(`Copied ${label}: ${text}`)).catch(()=>toast("Copy failed",true));
+}
+// shared <datalist> powering the filterable media picker in the project Screenshots editor
+function mediaDatalistHtml(){
+  return `<datalist id="mediaOptions">${media.map(m=>`<option value="media/${attr(m.name)}"></option>`).join("")}</datalist>`;
+}
+function refreshMediaDatalist(){
+  const dl=$("#mediaOptions"); if(dl) dl.innerHTML = media.map(m=>`<option value="media/${attr(m.name)}"></option>`).join("");
+}
+function setUp(msg,cls){ const el=$("#upStatus"); if(el){ el.className="status "+(cls||""); el.textContent=msg||""; } }
+
+async function loadMedia(){
+  try{
+    if(LOCAL){
+      const r=await fetch('/__media'); const j=await r.json();
+      media=(j.files||[]).map(f=>({ name:f.name, url:'/media/'+encodeURIComponent(f.name)+'?t='+Date.now() }));
+    } else {
+      const r=await auth.fetch(`${MEDIA_API}?ref=${CONFIG.branch}`);
+      if(r.status===404){ media=[]; }
+      else if(!r.ok){ throw new Error("GET "+r.status); }
+      else {
+        const arr=await r.json();
+        media=arr.filter(x=>x.type==="file" && x.name!==".gitkeep")
+                 .map(x=>({ name:x.name, url:x.download_url, sha:x.sha }));
+      }
+    }
+    renderMediaGrid();
+    refreshMediaDatalist();   // keep the Screenshots picker options in sync
+  }catch(err){ const g=$("#mediagrid"); if(g) g.innerHTML=`<div class="empty">Failed to load media: ${esc(err.message)}</div>`; }
+}
+
+function uniqueName(name){
+  const taken=new Set(media.map(m=>m.name));
+  if(!taken.has(name)) return name;
+  const dot=name.lastIndexOf("."), base=dot<0?name:name.slice(0,dot), ext=dot<0?"":name.slice(dot);
+  let n=1; while(taken.has(`${base}-${n}${ext}`)) n++;
+  return `${base}-${n}${ext}`;
+}
+
+async function handleFiles(files){
+  const imgs=files.filter(f=>f.type.startsWith("image/"));
+  if(!imgs.length){ setUp("no images in selection","err"); return; }
+  for(let i=0;i<imgs.length;i++){
+    setUp(`processing ${i+1}/${imgs.length}…`,"busy");
+    try{
+      const {blob,name}=await convertImage(imgs[i]);
+      await uploadBlob(uniqueName(name), blob);
+    }catch(err){ setUp("upload failed: "+err.message,"err"); toast("Upload failed: "+err.message,true); return; }
+  }
+  setUp(`uploaded ${imgs.length} ✓`,"ok");
+  await loadMedia();
+}
+
+function loadImage(file){
+  return new Promise((res,rej)=>{
+    const u=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(u); res(img); };
+    img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error("not an image")); };
+    img.src=u;
+  });
+}
+// Convert to AVIF if the browser can encode it, else WebP, else keep the original.
+async function convertImage(file){
+  try{
+    const img=await loadImage(file);
+    const MAX=1920; let w=img.naturalWidth, h=img.naturalHeight;
+    if(Math.max(w,h)>MAX){ const r=MAX/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
+    const c=document.createElement("canvas"); c.width=w; c.height=h;
+    c.getContext("2d").drawImage(img,0,0,w,h);
+    const base=file.name.replace(/\.[^.]+$/,"").replace(/[^a-zA-Z0-9._-]/g,"-") || "image";
+    for(const [type,ext] of [["image/avif","avif"],["image/webp","webp"]]){
+      const blob=await new Promise(r=>c.toBlob(r,type,0.82));
+      if(blob && blob.type===type) return { blob, name:`${base}.${ext}` };
+    }
+  }catch{}
+  return { blob:file, name:(file.name||"image").replace(/[^a-zA-Z0-9._-]/g,"-") };
+}
+
+function blobToBase64(blob){
+  return new Promise((res,rej)=>{ const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result).split(",")[1]); fr.onerror=rej; fr.readAsDataURL(blob); });
+}
+
+async function uploadBlob(name, blob){
+  if(LOCAL){
+    const r=await fetch('/__upload?name='+encodeURIComponent(name), { method:"POST", body:blob });
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('upload '+r.status)); }
+    return;
+  }
+  const content=await blobToBase64(blob);
+  const r=await auth.fetch(`${MEDIA_API}/${encodeURIComponent(name)}`, { method:"PUT",
+    body:JSON.stringify({ message:`admin: add media/${name}`, content, branch:CONFIG.branch }) });
+  if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||('upload '+r.status)); }
+}
+
+async function deleteMedia(name){
+  if(!confirm(`Delete media/${name}? This is immediate — not part of save.`)) return;
+  try{
+    if(LOCAL){
+      const r=await fetch('/__media-delete?name='+encodeURIComponent(name), { method:"POST" });
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('delete '+r.status)); }
+    } else {
+      const item=media.find(m=>m.name===name);
+      const r=await auth.fetch(`${MEDIA_API}/${encodeURIComponent(name)}`, { method:"DELETE",
+        body:JSON.stringify({ message:`admin: remove media/${name}`, sha:item&&item.sha, branch:CONFIG.branch }) });
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||('delete '+r.status)); }
+    }
+    toast("Deleted media/"+name);
+    await loadMedia();
+  }catch(err){ toast("Delete failed: "+err.message,true); }
+}
+
+function setStatus(msg, cls){
+  const el=$("#status"); if(!el) return;
+  el.className="status "+(cls||""); el.textContent=msg||"";
+}
+
+/* ============================================================
+   load: draft (browser) takes priority over the repo
+   ============================================================ */
+const API = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`;
+
+function adoptDoc(doc){
+  state = { version: doc.version||1,
+            site: doc.site||{name:"",role:"",bio:[],footer:[]},
+            projects: doc.projects||[],
+            posts: doc.posts||[] };
+}
+
+async function loadInitial(){
+  const draft = readDraft();
+  if(draft && Array.isArray(draft.projects)){
+    adoptDoc(draft);
+    selected = "newpost"; newPost = null;   // admin lands on a fresh new post
+    dirty=true; renderSidebar(); renderEditor(); updateDraftBadge();
+    setStatus("restored unsaved draft","busy");
+    toast("Restored an unsaved draft from this browser. Use “reload from repo” to discard it.");
+    if(LOCAL) baseline = await diskText();   // base the stale-write guard on the current file
+    else refreshSha();                       // GitHub mode needs the current sha so a commit doesn't 409
+    return;
+  }
+  await loadFromRepo();
+}
+
+async function refreshSha(){
+  try{
+    const g=await auth.fetch(`${API}?ref=${CONFIG.branch}`);
+    if(g.ok) fileSha=(await g.json()).sha;
+  }catch{}
+}
+
+// current on-disk projects.json text (local mode), or null
+async function diskText(){
+  try{ const r=await fetch('/projects.json?t='+Date.now(),{cache:'no-cache'}); return r.ok ? await r.text() : null; }catch{ return null; }
+}
+
+async function loadFromRepo(){
+  setStatus("loading from repo…","busy");
+  try{
+    if(LOCAL){
+      const r = await fetch('/projects.json?t='+Date.now(), { cache:'no-cache' });
+      fileSha=null;
+      if(r.status===404){
+        adoptDoc({ version:1, site:{name:"mikolajczyk",role:"",bio:[],footer:[]}, projects:[] });
+        baseline=null;
+      } else if(!r.ok){
+        throw new Error("GET "+r.status);
+      } else {
+        const txt=await r.text(); adoptDoc(JSON.parse(txt)); baseline=txt;
+      }
+      selected = "newpost"; newPost = null;   // admin lands on a fresh new post
+      markClean(); renderSidebar(); renderEditor();
+      setStatus("loaded (local mode)","ok");
+      return;
+    }
+    const res = await auth.fetch(`${API}?ref=${CONFIG.branch}`);
+    if(res.status===404){
+      // file doesn't exist yet — start empty
+      fileSha=null;
+      adoptDoc({ version:1, site:{name:"mikolajczyk",role:"",bio:[],footer:[]}, projects:[] });
+    } else if(!res.ok){
+      throw new Error("GET "+res.status);
+    } else {
+      const j=await res.json();
+      fileSha=j.sha;
+      const text=decodeURIComponent(escape(atob(j.content.replace(/\n/g,""))));
+      adoptDoc(JSON.parse(text));
+    }
+    selected = "newpost"; newPost = null;   // admin lands on a fresh new post
+    markClean();
+    renderSidebar(); renderEditor();
+    setStatus("loaded","ok");
+  }catch(err){
+    setStatus("error: "+err.message,"err");
+    toast("Failed to load: "+err.message, true);
+  }
+}
+
+/* ============================================================
+   save: the only path that writes data
+   ============================================================ */
+async function save(commit){
+  const doc=buildDoc();
+  const errs=validate(doc);
+  if(errs.length){
+    toast("Validation failed — fix the data", true);
+    setStatus(errs[0] + (errs.length>1?` (+${errs.length-1} more)`:""), "err");
+    return;
+  }
+  setStatus(LOCAL ? (commit?"saving + committing…":"saving locally…") : "committing…","busy");
+  const btns=[$("#saveBtn"),$("#saveCommitBtn")].filter(Boolean);
+  btns.forEach(b=>b.disabled=true);
+  try{
+    if(LOCAL){
+      const body = JSON.stringify(doc,null,2);
+      const cur = await diskText();   // stale-write guard: did another tab/edit change the file since load?
+      if(baseline!==null && cur!==null && cur!==baseline){
+        if(!confirm("projects.json changed on disk since you loaded it (another admin tab, or a manual edit).\n\nOverwrite it anyway? Those changes will be lost.\n\nCancel instead, then use “reload from repo” and redo yours.")){
+          setStatus("save blocked — disk changed since load","err");
+          return;
+        }
+      }
+      const r = await fetch('/__save'+(commit?'?commit=1':''), { method:'POST', headers:{'Content-Type':'application/json'}, body });
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('save '+r.status)); }
+      baseline = body + "\n";   // disk now matches what we just wrote
+      markSaved();
+      setStatus(commit?"saved + committed ✓":"saved locally ✓ (projects.json + rebuild)","ok");
+      toast(commit?"Saved to projects.json and git-committed (locally).":"Saved to projects.json (locally).");
+      return;
+    }
+    if(!fileSha) await refreshSha();   // draft-restored sessions skip the initial GET
+    const json=JSON.stringify(doc,null,2)+"\n";
+    const content=btoa(unescape(encodeURIComponent(json)));
+    const body={
+      message:`admin: update projects.json (${doc.projects.length} projects)`,
+      content,
+      branch:CONFIG.branch,
+    };
+    if(fileSha) body.sha=fileSha;
+    const res=await auth.fetch(API,{ method:"PUT", body:JSON.stringify(body) });
+    if(res.status===409){
+      throw new Error("conflict — the file changed in the repo. Click “reload from repo” and reapply your changes.");
+    }
+    if(!res.ok){
+      const e=await res.json().catch(()=>({}));
+      throw new Error((e.message||res.status));
+    }
+    const out=await res.json();
+    fileSha=out.content.sha;
+    markSaved();
+    setStatus("saved ✓ Pages will rebuild shortly","ok");
+    toast("Saved. GitHub Pages will rebuild in ~1 min.");
+  }catch(err){
+    setStatus("save error: "+err.message,"err");
+    toast("Save failed: "+err.message, true);
+  }finally{
+    btns.forEach(b=>b.disabled=false);
+  }
+}
+
+/* ============================================================
+   helpers
+   ============================================================ */
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function attr(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+// repo-relative paths (media/x, img/x) are relative to the site root; the admin lives at
+// /admin/, so make them absolute for in-panel thumbnails. Leave absolute / http(s) as-is.
+function adminMediaUrl(src){ if(!src) return ""; return /^(https?:)?\//.test(src) ? src : "/"+src; }
+function confirmDiscard(){ return !dirty || confirm("Discard the unsaved draft and reload from the repo?"); }
+let toastT;
+function toast(msg, isErr){
+  const t=$("#toast"); t.textContent=msg; t.className="toast show"+(isErr?" err":"");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.className="toast"+(isErr?" err":""),3600);
+}
+
+/* ============================================================
+   auth bootstrap
+   ============================================================ */
+function configIncomplete(){
+  return CONFIG.clientId.includes("REPLACE") || CONFIG.workerUrl.includes("REPLACE");
+}
+
+function renderSaveBar(){
+  $("#saveButtons").innerHTML = saveButtonsHtml();
+  const sv=$("#saveBtn"); if(sv) sv.onclick=()=>save(false);
+  const sc=$("#saveCommitBtn"); if(sc) sc.onclick=()=>save(true);
+}
+
+// jump to a tab/item from localStorage('admin_target') or the URL hash (front "edit" links)
+function applyTarget(){
+  let t;
+  try{ t = localStorage.getItem("admin_target"); localStorage.removeItem("admin_target"); }catch{}
+  if(!t) t = location.hash.replace(/^#/,"");
+  if(!t) return;
+  if(t==="site") selected="site";
+  else if(t==="media") selected="media";
+  else if(t==="newpost"){ selected="newpost"; newPost=null; }
+  else if(t.startsWith("project:")){ const i=state.projects.findIndex(p=>p.id===t.slice(8)); if(i<0) return; selected=i; }
+  else if(t.startsWith("post:")){ const i=state.posts.findIndex(p=>p.id===t.slice(5)); if(i<0) return; selected="post:"+i; }
+  else return;
+  renderSidebar(); renderEditor();
+}
+
+async function enterApp(){
+  $("#gate").hidden=true;
+  $("#topbar").hidden=false;
+  $("#app").hidden=false;
+  try{ localStorage.setItem("admin_session","1"); }catch{}   // hint for the front's edit links
+  renderSaveBar();
+  loadMedia();   // populate the media list so the Screenshots picker has options
+  if(LOCAL){
+    $("#who").textContent="local mode · dev";
+    $("#logoutBtn").hidden=true;
+    await loadInitial();
+    applyTarget();
+    return;
+  }
+  // who am I
+  try{
+    const r=await auth.fetch("https://api.github.com/user");
+    if(r.ok){ const u=await r.json(); $("#who").innerHTML=`<img src="${u.avatar_url}&s=44" alt=""> ${u.login}`; }
+  }catch{}
+  await loadInitial();
+  applyTarget();
+}
+
+$("#addProjectBtn").onclick=addProject;
+$("#addPostBtn").onclick=startNewPost;
+$("#mediaBtn").onclick=()=>{ selected="media"; renderSidebar(); renderEditor(); };
+$("#editSiteBtn").onclick=()=>{ selected="site"; renderSidebar(); renderEditor(); };
+$("#editor").addEventListener("click", e=>{ const c=e.target.closest(".emojichip"); if(c) copyText(c.dataset.code,"shortcode"); });
+$("#reloadBtn").onclick=()=>{ if(confirmDiscard()){ clearDraft(); loadFromRepo(); } };
+$("#previewBtn").onclick=()=>{ if(dirty) persistDraft(); window.open(location.origin + "/?preview", "sitepreview"); };
+$("#loginBtn").onclick=()=>{
+  if(configIncomplete()){ toast("Fill in CONFIG in admin/index.html", true); return; }
+  auth.login();
+};
+$("#logoutBtn").onclick=()=>{ auth.logout(); try{localStorage.removeItem("admin_session");}catch{} location.reload(); };
+window.addEventListener("hashchange", applyTarget);   // reused admin tab: react to a new edit target
+
+window.addEventListener("beforeunload", e=>{ if(dirty){ e.preventDefault(); e.returnValue=""; } });
+
+(async function init(){
+  // local mode: dev.mjs answers /__local — no login, save writes the file
+  try{
+    const r=await fetch('/__local');
+    if(r.ok){ LOCAL=true; await enterApp(); return; }
+  }catch{}
+  if(configIncomplete()){
+    const w=$("#cfgWarn"); w.hidden=false;
+    w.textContent="⚠ Fill in CONFIG (clientId, workerUrl) in admin/index.html before logging in.";
+  }
+  try{
+    const did=await auth.handleCallback();   // returns true if we just came back from GitHub
+    if(did || auth.isAuthenticated()){ await enterApp(); return; }
+  }catch(err){
+    toast(err.message, true);
+  }
+  // stay on gate
+})();
+</script>
+
+</body>
+</html>
