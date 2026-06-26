@@ -140,11 +140,11 @@
 
   /* ---- log entries ---- */
   .log { list-style: none; margin: 0; padding: 0; }
-  .entry { display: grid; grid-template-columns: 56px 1fr; gap: 0 18px; padding: 22px 16px 22px 0; border-bottom: 1px solid var(--line); position: relative; cursor: pointer; }
+  .entry { padding: 22px 16px 22px 0; border-bottom: 1px solid var(--line); position: relative; cursor: pointer; }
   .entry:hover { background: linear-gradient(90deg, rgba(74,222,128,.025), transparent 60%); }
   .entry::before { content: ""; position: absolute; left: -16px; top: 0; bottom: 0; width: 2px; background: var(--acc); transform: scaleY(0); transform-origin: top; transition: transform .2s ease; }
   .entry:hover::before { transform: scaleY(1); }
-  .year { color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+  .year { margin-left: auto; color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
   .body { min-width: 0; }
   .titleline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 12px; margin-bottom: 5px; }
   .name { font-size: 16px; font-weight: 600; color: #eef3f1; text-decoration: none; }
@@ -249,8 +249,6 @@
 
   @media (max-width: 560px) {
     header, .detailpane { padding-top: 60px; }
-    .entry { grid-template-columns: 1fr; gap: 4px; }
-    .year { padding-top: 0; }
     .links { margin-left: 0; align-items: flex-start; }
   }
 </style>
@@ -290,13 +288,13 @@
 
         <div class="split">
           <section class="col" data-col="posts">
-            <div class="seclabel">Feed <span class="count" id="postCount">// 0</span></div>
+            <div class="seclabel right">Feed <span class="count" id="postCount">// 0</span></div>
             <input type="search" id="feedSearch" class="feedsearch" placeholder="search posts &amp; worklog…" autocomplete="off">
             <ul class="postlog" id="postlog"></ul>
           </section>
           <div class="divider" aria-hidden="true"></div>
           <section class="col active" data-col="projects">
-            <div class="seclabel right">Projects <span class="count" id="projCount">// 0</span></div>
+            <div class="seclabel">Projects <span class="count" id="projCount">// 0</span></div>
             <ul class="log" id="log"></ul>
           </section>
         </div>
@@ -415,9 +413,8 @@ function renderList(){
       : `<span class="name">${p.name}</span>`;
     return `
       <li class="entry" data-id="${p.id}" style="animation-delay:${(.40+i*.06).toFixed(2)}s">
-        <div class="year">${p.year}</div>
         <div class="body">
-          <div class="titleline">${head}<span class="tag ${cls}">${label}</span></div>
+          <div class="titleline">${head}<span class="tag ${cls}">${label}</span><span class="year">${p.year}</span></div>
           <p class="desc">${p.descHtml}</p>
           <div class="meta">${p.chips.map(c=>`<span class="chip">${c}</span>`).join('')}${linksHtml(p)}</div>
           <div class="shots">${p.shots.map(shotHtml).join('')}</div>
@@ -435,7 +432,7 @@ function renderPosts(){
   const chips = pr => (pr.chips||[]).join(' ');
   // every searchable item; `inFeed` controls browse mode (search ignores it)
   const items = [
-    ...posts.map(p => ({ date:p.date, post:p, inFeed:true,
+    ...posts.filter(p => p.published !== false).map(p => ({ date:p.date, post:p, inFeed:true,
       hay:((p.title||'')+' '+(p.md||'')).toLowerCase() })),
     ...projects.flatMap(pr => (pr.worklog||[]).map(e => ({ date:e.date, project:pr, entry:e, inFeed:e.feed!==false,
       hay:(pr.name+' '+pr.descHtml+' '+chips(pr)+' '+e.ver+' '+(e.md||'')).toLowerCase() }))),

@@ -207,12 +207,14 @@ function main() {
   const doc = JSON.parse(read("projects.json"));
   validate(doc);
   const template = read("template.html");
+  // public view: drop draft posts (published === false) from the baked HTML + RSS
+  const pub = { ...doc, posts: (doc.posts || []).filter((p) => p.published !== false) };
 
   rmSync(DIST, { recursive: true, force: true });
   mkdirSync(DIST, { recursive: true });
 
-  writeFileSync(join(DIST, "index.html"), buildHtml(doc, template));
-  writeFileSync(join(DIST, "feed.xml"), buildFeed(doc));
+  writeFileSync(join(DIST, "index.html"), buildHtml(pub, template));
+  writeFileSync(join(DIST, "feed.xml"), buildFeed(pub));
 
   // copy verbatim assets
   cpSync(join(ROOT, "admin"), join(DIST, "admin"), { recursive: true });

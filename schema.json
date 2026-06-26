@@ -104,6 +104,8 @@
                    "description": "YYYY, YYYY-MM, or YYYY-MM-DD." },
         "title": { "type": "string", "maxLength": 160,
                    "description": "Optional heading. Omit for a microblog-style note." },
+        "published": { "type": "boolean",
+                   "description": "false = draft: hidden from the site, feed, RSS and search (still kept in projects.json)." },
         "md":    { "type": "string", "minLength": 1, "maxLength": 8000,
                    "description": "Markdown body. Rendered client-side." }
       }

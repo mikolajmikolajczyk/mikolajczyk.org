@@ -407,8 +407,8 @@ function renderSidebar(){
   const pl=$("#postlist");
   pl.innerHTML = (state.posts||[]).map((p,i)=>`
     <li class="pitem ${selected==='post:'+i?'sel':''}" data-pi="${i}">
-      <span class="dot done"></span>
-      <span class="nm">${esc(p.title||p.date||'(untitled)')}</span>
+      <span class="dot ${p.published===false?'paused':'active'}"></span>
+      <span class="nm">${esc(p.title||p.date||'(untitled)')}${p.published===false?' <span class="diag">draft</span>':''}</span>
       <span class="yr">${esc((p.date||'').slice(0,4))}</span>
     </li>`).join("");
   $("#postcount").textContent = (state.posts||[]).length + " items";
@@ -689,6 +689,7 @@ function renderPostFields(p, isNew){
   };
   $("#editor").innerHTML = `
     ${isNew?'<div class="savehint" style="margin:0 0 14px">New post — start typing; it joins the list once it has a body.</div>':''}
+    <div class="kindrow"><button class="pinbtn ${p.published===false?'':'on'}" id="p-pub">${p.published===false?'● draft (hidden)':'published ✓'}</button></div>
     <div class="row2">
       <div class="field"><label>id <span class="hint">slug for #/post/&lt;id&gt;</span></label><input type="text" id="p-id" value="${attr(p.id)}"></div>
       <div class="field"><label>date <span class="hint">YYYY / YYYY-MM / YYYY-MM-DD</span></label><input type="text" id="p-date" value="${attr(p.date)}"></div>
@@ -709,6 +710,8 @@ function renderPostFields(p, isNew){
   $("#p-date").oninput  = e=>{ p.date=e.target.value; touch(); renderSidebar(); };
   $("#p-title").oninput = e=>{ const v=e.target.value; if(v) p.title=v; else delete p.title; touch(); renderSidebar(); };
   makeMDE($("#p-md"), val=>{ p.md=val; touch(); $("#p-prev").innerHTML=md(val); });
+  $("#p-pub").onclick = ()=>{ if(p.published===false) delete p.published; else p.published=false; touch();
+    const b=$("#p-pub"), off=p.published===false; b.classList.toggle("on",!off); b.textContent=off?"● draft (hidden)":"published ✓"; renderSidebar(); };
   $("#deletePostBtn").onclick = ()=>{ if(selected==="newpost"){ newPost=null; renderEditor(); } else deletePost(); };
 }
 function startNewPost(){
