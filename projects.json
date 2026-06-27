@@ -73,7 +73,7 @@
           "kind": "release",
           "ver": "0.20.0",
           "date": "2026-06-27",
-          "md": "Features\n\n- added: (ide) On-screen-keyboard symbol bar for touch devices\n- added: Publish site to GitHub Pages on release\n- added: VDP memory viewer — CRAM palette + VRAM tile grid\n- added: VDP sprite viewer + iPad viewport scroll fix\n- added: 2-player input, stereo audio, macro-aware source map\n- added: (zx-c) Variables locals + per-line breakpoints + step-over for sccz80\n- added: Copt to z88dk toolchain\n- fixed: (lsp-c) Resolve macros/enums/exprs in array sizes + macro-sized field names\n- fixed: (lsp-c) Resolve typedef-to-array types (typedef int Row[N])"
+          "md": "Often used symbols bar added just above on-screen keyboard on smaller devices, VDP memory and sprite viewer, 2-player input and stereo audio for Genesis target. Optimizations enabled for z88dk toolchain. Improvements to lsp-c created in regards to resolving macros and typedefs.\n\n- added: (ide) On-screen-keyboard symbol bar for touch devices\n- added: Publish site to GitHub Pages on release\n- added: VDP memory viewer — CRAM palette + VRAM tile grid\n- added: VDP sprite viewer + iPad viewport scroll fix\n- added: 2-player input, stereo audio, macro-aware source map\n- added: (zx-c) Variables locals + per-line breakpoints + step-over for sccz80\n- added: Copt to z88dk toolchain\n- fixed: (lsp-c) Resolve macros/enums/exprs in array sizes + macro-sized field names\n- fixed: (lsp-c) Resolve typedef-to-array types (typedef int Row[N])"
         },
         {
           "kind": "note",
